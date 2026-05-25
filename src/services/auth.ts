@@ -61,5 +61,6 @@ export async function resetPassword(body: ResetPasswordBody): Promise<void> {
 // ---------------------------------------------------------------------------
 export async function logoutAll(): Promise<void> {
   await api.post(`${BASE}/logout-all`);
-  localStorage.clear();
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
 }

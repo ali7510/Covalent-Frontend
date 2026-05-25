@@ -290,6 +290,7 @@ export interface ShareLinkBody {
 export interface UpdateMaterialBody {
   title?: string;
   description?: string;
+  url?: string;
 }
 
 export interface UpdateProfileBody {

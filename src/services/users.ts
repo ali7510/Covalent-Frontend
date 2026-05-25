@@ -33,7 +33,8 @@ export async function changePassword(body: ChangePasswordBody): Promise<void> {
 export async function logout(): Promise<void> {
   const refreshToken = localStorage.getItem("refreshToken");
   await api.post(`${BASE}/logout`, { refreshToken });
-  localStorage.clear();
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
 }
 
 // ---------------------------------------------------------------------------
