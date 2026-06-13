@@ -49,16 +49,16 @@ export default function HomePage() {
   return (
     <div className="space-y-8 animate-fade-in duration-300">
       {/* Welcome Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-8 md:p-10 shadow-xs">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-neutral-100 dark:bg-neutral-900 rounded-full filter blur-3xl opacity-50 pointer-events-none -z-10" />
+      <div className="relative overflow-hidden rounded-md border border-border bg-card p-8 md:p-10 shadow-card-light dark:shadow-card-dark">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/20 rounded-full filter blur-3xl opacity-50 pointer-events-none -z-10" />
         <div className="max-w-2xl space-y-3">
-          <span className="inline-flex items-center rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 py-1 text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+          <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-[11px] font-[510] text-secondary-foreground">
             Academic Hub
           </span>
-          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-neutral-900 dark:text-neutral-50 leading-none">
-            Welcome back, <span className="font-semibold text-neutral-950 dark:text-white">{user?.fullName || "Student"}</span>
+          <h1 className="text-[28px] md:text-[32px] leading-[1.2] tracking-[-0.5px] font-normal text-foreground">
+            Welcome back, <span className="font-[510]">{user?.fullName || "Student"}</span>
           </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 font-light leading-relaxed text-sm md:text-base">
+          <p className="text-muted-foreground font-normal leading-relaxed text-[14px]">
             {spaces && spaces.length > 0
               ? `You are a member of ${spaces.length} study space${spaces.length > 1 ? "s" : ""}. Explore discussions and shared materials from your peers.`
               : "Join study spaces to collaborate with your peers on courses, share materials, and earn XP."}
@@ -73,15 +73,15 @@ export default function HomePage() {
           return (
             <div 
               key={idx}
-              className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-5 shadow-xs flex items-center justify-between hover:shadow-sm transition-shadow duration-200"
+              className="rounded-md border border-border bg-card p-5 shadow-card-light dark:shadow-card-dark flex items-center justify-between hover:shadow-md transition-shadow duration-200"
             >
               <div className="space-y-1.5">
-                <span className="text-xs text-neutral-450 dark:text-neutral-500 font-medium tracking-wide uppercase">{stat.label}</span>
-                <p className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">{stat.value}</p>
-                <span className="text-[11px] text-neutral-400 dark:text-neutral-500 block">{stat.sub}</span>
+                <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">{stat.label}</span>
+                <p className="text-[22px] font-[510] tracking-tight text-foreground">{stat.value}</p>
+                <span className="text-[11px] text-muted-foreground block">{stat.sub}</span>
               </div>
-              <div className="p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-xl">
-                <Icon className="h-5 w-5 text-neutral-800 dark:text-neutral-200" />
+              <div className="p-3 bg-secondary border border-border rounded-md">
+                <Icon className="h-5 w-5 text-foreground" />
               </div>
             </div>
           )
@@ -92,10 +92,10 @@ export default function HomePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left Side: My Spaces */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-xs">
-            <div className="flex items-center justify-between pb-4 border-b border-neutral-100 dark:border-neutral-900">
-              <h3 className="text-base font-semibold text-neutral-900 dark:text-white">My Study Spaces</h3>
-              <Link to="/spaces/search" className="text-xs text-neutral-400 dark:text-neutral-500 font-medium hover:text-neutral-900 dark:hover:text-neutral-200 transition-colors">
+          <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark">
+            <div className="flex items-center justify-between pb-4 border-b border-border">
+              <h3 className="text-[15px] leading-[24px] font-[510] text-foreground">My Study Spaces</h3>
+              <Link to="/spaces/search" className="text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors">
                 Explore all →
               </Link>
             </div>
@@ -105,7 +105,7 @@ export default function HomePage() {
                 <LoadingState message="Loading your spaces…" />
               ) : !spaces || spaces.length === 0 ? (
                 <EmptyState
-                  icon={<FolderOpen className="h-6 w-6 text-neutral-400" />}
+                  icon={<FolderOpen className="h-6 w-6 text-muted-foreground" />}
                   title="No spaces joined yet"
                   description="Explore available spaces and join your course groups."
                 />
@@ -122,15 +122,18 @@ export default function HomePage() {
 
         {/* Right Side: Quick Action Links */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-950 dark:bg-neutral-950 text-white p-6 shadow-xs relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,#3b3b3b_0%,transparent_70%)] opacity-40" />
-            <h3 className="text-base font-semibold mb-2 relative z-10">Study Spaces Hub</h3>
-            <p className="text-xs text-neutral-400 mb-6 font-light leading-relaxed relative z-10">
+          <div 
+            className="rounded-md text-white p-6 shadow-card-dark relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #0E1A3E 0%, #293677 50%, #544BBA 100%)" }}
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-50" />
+            <h3 className="text-[15px] font-[510] mb-2 relative z-10">Study Spaces Hub</h3>
+            <p className="text-[12px] text-white/70 mb-6 font-normal leading-relaxed relative z-10">
               Collaborate on courses, find solutions from peers, and download lecture notes uploaded by instructors.
             </p>
             <Link 
               to="/spaces/search" 
-              className="inline-flex items-center space-x-2 rounded-lg bg-white text-neutral-950 px-4 py-2 text-xs font-semibold hover:bg-neutral-100 active:scale-98 transition-all relative z-10"
+              className="inline-flex items-center space-x-2 rounded-full bg-white text-[#0E1A3E] px-4 py-2 text-[12px] font-[510] hover:bg-white/90 active:scale-98 transition-all relative z-10"
             >
               <span>Explore Spaces</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -138,29 +141,29 @@ export default function HomePage() {
           </div>
 
           {/* Gamification Summary */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-xs">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">Activity Summary</h3>
+          <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark">
+            <h3 className="text-[14px] font-[510] text-foreground mb-4">Activity Summary</h3>
             {gamLoading ? (
               <LoadingState message="Loading stats…" className="p-4" />
             ) : !gamification ? (
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light">No activity data available yet.</p>
+              <p className="text-[12px] text-muted-foreground font-normal">No activity data available yet.</p>
             ) : (
-              <div className="space-y-3 text-xs">
+              <div className="space-y-3 text-[12px]">
                 <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Total Posts</span>
-                  <span className="font-semibold text-neutral-850 dark:text-neutral-200">{gamification.totalPosts}</span>
+                  <span className="text-muted-foreground">Total Posts</span>
+                  <span className="font-[510] text-foreground">{gamification.totalPosts}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Total Answers</span>
-                  <span className="font-semibold text-neutral-850 dark:text-neutral-200">{gamification.totalAnswers}</span>
+                  <span className="text-muted-foreground">Total Answers</span>
+                  <span className="font-[510] text-foreground">{gamification.totalAnswers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Upvotes Received</span>
-                  <span className="font-semibold text-neutral-850 dark:text-neutral-200">{gamification.totalUpvotesReceived}</span>
+                  <span className="text-muted-foreground">Upvotes Received</span>
+                  <span className="font-[510] text-foreground">{gamification.totalUpvotesReceived}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-500 dark:text-neutral-400">Materials Shared</span>
-                  <span className="font-semibold text-neutral-850 dark:text-neutral-200">{gamification.totalMaterialsShared}</span>
+                  <span className="text-muted-foreground">Materials Shared</span>
+                  <span className="font-[510] text-foreground">{gamification.totalMaterialsShared}</span>
                 </div>
               </div>
             )}

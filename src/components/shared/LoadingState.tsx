@@ -11,8 +11,8 @@ export default function LoadingState({
 }: LoadingStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center p-12 space-y-3 ${className}`}>
-      <Loader2 className="h-6 w-6 text-neutral-400 animate-spin" />
-      <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">{message}</p>
+      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+      <p className="text-[13px] leading-[18px] text-muted-foreground font-normal">{message}</p>
     </div>
   )
 }

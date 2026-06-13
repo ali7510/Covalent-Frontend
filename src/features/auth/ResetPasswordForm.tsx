@@ -1,8 +1,10 @@
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import axios from "axios"
 import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
 import { resetPasswordSchema, type ResetPasswordFormData } from "./auth-schemas"
 import { resetPassword } from "@/services/auth"
 import { Button } from "@/components/ui/button"
@@ -20,6 +22,8 @@ export default function ResetPasswordForm() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token") || ""
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -49,8 +53,8 @@ export default function ResetPasswordForm() {
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
       <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Reset password</h1>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-[20px] leading-[26.6px] tracking-[-0.24px] font-[510] text-foreground">Reset password</h2>
+        <p className="text-[13px] leading-[18px] text-muted-foreground font-normal">
           Enter your new password below.
         </p>
       </div>
@@ -62,9 +66,25 @@ export default function ResetPasswordForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New Password</FormLabel>
+                <FormLabel className="text-[13px] font-[510] text-foreground">New Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pr-10"
+                      {...field}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -75,9 +95,25 @@ export default function ResetPasswordForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
+                <FormLabel className="text-[13px] font-[510] text-foreground">Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <div className="relative">
+                    <Input
+                      type={showConfirm ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pr-10"
+                      {...field}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                      aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                    >
+                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -87,16 +123,16 @@ export default function ResetPasswordForm() {
             {form.formState.isSubmitting ? "Resetting..." : "Reset password"}
           </Button>
           {!token && (
-            <p className="text-sm text-destructive text-center">
+            <p className="text-[13px] text-destructive text-center">
               Missing reset token in URL.
             </p>
           )}
         </form>
       </Form>
-      
-      <p className="px-8 text-center text-sm text-muted-foreground">
+
+      <p className="px-8 text-center text-[13px] text-muted-foreground font-normal">
         Remember your password?{" "}
-        <Link to="/login" className="font-semibold text-primary hover:underline">
+        <Link to="/login" className="font-[510] text-primary hover:underline">
           Sign in
         </Link>
       </p>

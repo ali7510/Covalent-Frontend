@@ -98,6 +98,8 @@ import {
   deleteCourse,
 } from "../services/courses";
 
+import { getSpaceRecommendations } from "../services/recommendations";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. AUTH
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,11 +288,11 @@ describe("spaces service", () => {
   });
 
   describe("getActiveSpaces()", () => {
-    it("returns a PagedResponse wrapping the spaces", async () => {
+    it("returns an array of SpaceResponse objects", async () => {
       const result = await getActiveSpaces();
-      expect(result.content).toHaveLength(1);
-      expect(result.totalElements).toBe(1);
-      expect(result.number).toBe(0);
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("space-1");
     });
 
     it("accepts custom page and size arguments", async () => {
@@ -300,9 +302,10 @@ describe("spaces service", () => {
   });
 
   describe("searchSpaces()", () => {
-    it("returns a PagedResponse containing matched spaces", async () => {
+    it("returns an array of matched SpaceResponse objects", async () => {
       const result = await searchSpaces({ query: "algorithms" });
-      expect(result.content[0].name).toBe("Algorithms & Data Structures");
+      expect(Array.isArray(result)).toBe(true);
+      expect(result[0].name).toBe("Algorithms & Data Structures");
     });
 
     it("accepts all optional filter params without throwing", async () => {
@@ -964,5 +967,22 @@ describe("api interceptor", () => {
     expect(localStorage.getItem("refreshToken")).toBeNull();
     // Interceptor must have attempted to redirect to /login
     expect(locationSpy).toHaveBeenCalledWith("/login");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. RECOMMENDATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+describe("recommendations service", () => {
+  describe("getSpaceRecommendations()", () => {
+    it("returns an array of SpaceRecommendationResponse objects", async () => {
+      const result = await getSpaceRecommendations();
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0].score).toBe(0.95);
+      expect(result[0].methodCount).toBe(2);
+      expect(result[0].reasons).toContain("COURSE_MATCH");
+      expect(result[0].space.id).toBe("space-1");
+    });
   });
 });

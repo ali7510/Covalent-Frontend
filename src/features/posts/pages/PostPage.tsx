@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { isAxiosError } from "axios"
 import { useParams, Link, useNavigate } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import { MessageSquare, ArrowUp, User, Clock, CheckCircle, Edit, Trash2, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useAuth } from "@/features/auth/AuthContext"
@@ -23,34 +24,54 @@ import AnswerCard from "@/components/shared/AnswerCard"
 import LoadingState from "@/components/shared/LoadingState"
 import EmptyState from "@/components/shared/EmptyState"
 import { toast } from "sonner"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+
+const createAnswerSchema = z.object({
+  body: z.string().min(1, "Reply body cannot be empty"),
+})
+
+const editPostSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  body: z.string().min(1, "Body is required"),
+})
+
+const editAnswerSchema = z.object({
+  body: z.string().min(1, "Answer body cannot be empty"),
+})
+
+type CreateAnswerValues = z.infer<typeof createAnswerSchema>
+type EditPostValues = z.infer<typeof editPostSchema>
+type EditAnswerValues = z.infer<typeof editAnswerSchema>
 
 export default function PostPage() {
   const { postId } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   
-  // Compose reply state
-  const [answerText, setAnswerText] = useState("")
-  const [hasVotedGood, setHasVotedGood] = useState(() => {
-    if (!postId) return false
-    const voted = localStorage.getItem("votedQuestions")
-    if (!voted) return false
-    try {
-      const ids = JSON.parse(voted) as string[]
-      return ids.includes(postId)
-    } catch {
-      return false
-    }
+  // Edit Post Dialog Open State
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false)
+
+  // Edit Answer State
+  const [editingAnswer, setEditingAnswer] = useState<{ id: string; body: string } | null>(null)
+
+  // React Hook Forms
+  const composeForm = useForm<CreateAnswerValues>({
+    resolver: zodResolver(createAnswerSchema),
+    defaultValues: { body: "" },
   })
 
-  // Edit Post Dialog State
-  const [isEditPostOpen, setIsEditPostOpen] = useState(false)
-  const [editPostTitle, setEditPostTitle] = useState("")
-  const [editPostBody, setEditPostBody] = useState("")
+  const editPostForm = useForm<EditPostValues>({
+    resolver: zodResolver(editPostSchema),
+    defaultValues: { title: "", body: "" },
+  })
 
-  // Edit Answer Dialog State
-  const [editingAnswer, setEditingAnswer] = useState<{ id: string; body: string } | null>(null)
-  const [editAnswerBody, setEditAnswerBody] = useState("")
+  const editAnswerForm = useForm<EditAnswerValues>({
+    resolver: zodResolver(editAnswerSchema),
+    defaultValues: { body: "" },
+  })
 
   // API State Fetching
   const { data: post, isLoading: postLoading } = usePost(postId)
@@ -100,18 +121,12 @@ export default function PostPage() {
       return
     }
 
-    if (hasVotedGood) {
+    const hasVoted = post.hasVoted ?? false
+
+    if (hasVoted) {
       removeVoteGoodMutation.mutate(undefined, {
         onSuccess: () => {
-          setHasVotedGood(false)
-          const voted = localStorage.getItem("votedQuestions")
-          try {
-            const ids = voted ? (JSON.parse(voted) as string[]) : []
-            const filtered = ids.filter((id) => id !== postId)
-            localStorage.setItem("votedQuestions", JSON.stringify(filtered))
-          } catch {
-            // ignore
-          }
+          queryClient.invalidateQueries({ queryKey: ["post", postId] })
           toast.success("Vote removed")
         },
         onError: () => toast.error("Failed to remove vote"),
@@ -119,17 +134,7 @@ export default function PostPage() {
     } else {
       voteGoodMutation.mutate(undefined, {
         onSuccess: () => {
-          setHasVotedGood(true)
-          const voted = localStorage.getItem("votedQuestions")
-          try {
-            const ids = voted ? (JSON.parse(voted) as string[]) : []
-            if (postId && !ids.includes(postId)) {
-              ids.push(postId)
-            }
-            localStorage.setItem("votedQuestions", JSON.stringify(ids))
-          } catch {
-            // ignore
-          }
+          queryClient.invalidateQueries({ queryKey: ["post", postId] })
           toast.success("Voted question as good!")
         },
         onError: () => toast.error("Failed to vote"),
@@ -137,19 +142,13 @@ export default function PostPage() {
     }
   }
 
-  const handleComposeAnswerSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!answerText.trim()) {
-      toast.error("Reply body cannot be empty")
-      return
-    }
-
+  const handleComposeAnswerSubmit = (values: CreateAnswerValues) => {
     createAnswerMutation.mutate(
-      { body: answerText },
+      { body: values.body },
       {
         onSuccess: () => {
           toast.success("Reply submitted!")
-          setAnswerText("")
+          composeForm.reset()
         },
         onError: (err) => toast.error(isAxiosError(err) ? err.response?.data?.message || "Failed to submit answer" : "Failed to submit answer"),
       }
@@ -173,29 +172,30 @@ export default function PostPage() {
   const handleUpvoteToggle = (answerId: string, hasUpvoted: boolean) => {
     if (hasUpvoted) {
       removeUpvoteAnswerMutation.mutate(answerId, {
-        onSuccess: () => toast.success("Upvote removed"),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["answers", postId] })
+          toast.success("Upvote removed")
+        },
         onError: () => toast.error("Failed to remove upvote"),
       })
     } else {
       upvoteAnswerMutation.mutate(answerId, {
-        onSuccess: () => toast.success("Answer upvoted!"),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["answers", postId] })
+          toast.success("Answer upvoted!")
+        },
         onError: () => toast.error("Failed to upvote answer"),
       })
     }
   }
 
-  // Edit Post submit
-  const handleEditPostSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editPostTitle.trim() || !editPostBody.trim()) {
-      toast.error("Title and body cannot be empty")
-      return
-    }
 
+  // Edit Post submit
+  const handleEditPostSubmit = (values: EditPostValues) => {
     updatePostMutation.mutate(
       {
         postId: post.id,
-        body: { title: editPostTitle, body: editPostBody },
+        body: { title: values.title.trim(), body: values.body.trim() },
       },
       {
         onSuccess: () => {
@@ -221,18 +221,13 @@ export default function PostPage() {
   }
 
   // Edit Answer submit
-  const handleEditAnswerSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleEditAnswerSubmit = (values: EditAnswerValues) => {
     if (!editingAnswer) return
-    if (!editAnswerBody.trim()) {
-      toast.error("Answer body cannot be empty")
-      return
-    }
 
     updateAnswerMutation.mutate(
       {
         answerId: editingAnswer.id,
-        body: { body: editAnswerBody },
+        body: { body: values.body.trim() },
       },
       {
         onSuccess: () => {
@@ -261,27 +256,27 @@ export default function PostPage() {
       {/* Back to space link */}
       <Link 
         to={`/spaces/${post.spaceId}`} 
-        className="inline-flex items-center text-xs font-semibold text-neutral-450 dark:text-neutral-500 hover:text-neutral-850"
+        className="inline-flex items-center text-[12px] font-[510] text-muted-foreground hover:text-foreground transition-colors"
       >
         <span>← Back to Space Discussions</span>
       </Link>
 
       {/* Main Post details */}
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-xs flex items-start space-x-5">
+      <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark flex items-start space-x-5">
         {/* Voting Panel */}
         <div className="flex flex-col items-center space-y-1">
           <button 
             onClick={handleVoteGoodToggle}
-            className={`p-1.5 rounded-lg border transition-all duration-200 ${
-              hasVotedGood
-                ? "bg-neutral-950 text-white border-neutral-950 dark:bg-white dark:text-neutral-950 dark:border-white"
-                : "bg-neutral-50 border-neutral-200 text-neutral-400 hover:text-neutral-800"
+            className={`p-1.5 rounded-md border transition-all duration-200 ${
+              post.hasVoted
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-secondary border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            <ArrowUp className="h-4.5 w-4.5" />
+            <ArrowUp className="h-4 w-4" />
           </button>
-          <span className="text-xs font-bold text-neutral-900 dark:text-white">
-            {post.goodQuestionCount + (hasVotedGood ? 1 : 0)}
+          <span className="text-[12px] font-[510] text-foreground">
+            {post.goodQuestionCount}
           </span>
         </div>
 
@@ -290,15 +285,15 @@ export default function PostPage() {
           <div className="flex items-start justify-between">
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-bold text-neutral-900 dark:text-white leading-snug">{post.title}</h2>
+                <h2 className="text-[17px] font-[510] text-foreground leading-snug">{post.title}</h2>
                 {post.isSolved && (
-                  <span className="inline-flex items-center space-x-1 rounded-full bg-emerald-50 text-emerald-650 border border-emerald-250 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                  <span className="inline-flex items-center space-x-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[9px] font-[510] uppercase tracking-wider dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800">
                     <CheckCircle className="h-3 w-3" />
                     <span>Solved</span>
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-3 text-[10px] text-neutral-450 dark:text-neutral-500 font-medium">
+              <div className="flex items-center space-x-3 text-[10px] text-muted-foreground font-medium">
                 <span className="flex items-center space-x-1">
                   <User className="h-3 w-3" />
                   <span>Posted by {post.authorName || "N/A"}</span>
@@ -315,11 +310,13 @@ export default function PostPage() {
               <div className="flex items-center space-x-1.5">
                 <button
                   onClick={() => {
-                    setEditPostTitle(post.title)
-                    setEditPostBody(post.body)
+                    editPostForm.reset({
+                      title: post.title,
+                      body: post.body,
+                    })
                     setIsEditPostOpen(true)
                   }}
-                  className="p-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                  className="p-1.5 rounded-md border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                   title="Edit Post"
                 >
                   <Edit className="h-3.5 w-3.5" />
@@ -327,7 +324,7 @@ export default function PostPage() {
                 <button
                   onClick={handleDeletePost}
                   disabled={deletePostMutation.isPending}
-                  className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-505 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                  className="p-1.5 rounded-md border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                   title="Delete Post"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -336,12 +333,12 @@ export default function PostPage() {
             )}
           </div>
 
-          <p className="text-xs text-neutral-500 dark:text-neutral-450 leading-relaxed font-light whitespace-pre-wrap">
+          <p className="text-[13px] text-muted-foreground leading-relaxed font-normal whitespace-pre-wrap">
             {post.body}
           </p>
 
           {/* Stats bar */}
-          <div className="flex items-center space-x-4 text-[10px] text-neutral-400 dark:text-neutral-550 pt-2 border-t border-neutral-100 dark:border-neutral-900">
+          <div className="flex items-center space-x-4 text-[10px] text-muted-foreground pt-2 border-t border-border">
             <span>{post.viewCount} views</span>
             <span>{answers?.length || 0} answers</span>
           </div>
@@ -350,8 +347,8 @@ export default function PostPage() {
 
       {/* Answers Section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-neutral-900 dark:text-white flex items-center space-x-2">
-          <MessageSquare className="h-4.5 w-4.5 text-neutral-400" />
+        <h3 className="text-[14px] font-[510] text-foreground flex items-center space-x-2">
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
           <span>Answers ({answers?.length || 0})</span>
         </h3>
 
@@ -359,7 +356,7 @@ export default function PostPage() {
           <LoadingState message="Loading answers…" />
         ) : !answers || answers.length === 0 ? (
           <EmptyState
-            icon={<MessageSquare className="h-6 w-6 text-neutral-400" />}
+            icon={<MessageSquare className="h-6 w-6 text-muted-foreground" />}
             title="No answers yet"
             description="Be the first to answer this question."
           />
@@ -376,7 +373,7 @@ export default function PostPage() {
                 onUpvoteToggle={handleUpvoteToggle}
                 onEdit={(ans) => {
                   setEditingAnswer({ id: ans.id, body: ans.body })
-                  setEditAnswerBody(ans.body)
+                  editAnswerForm.reset({ body: ans.body })
                 }}
                 onDelete={handleDeleteAnswer}
               />
@@ -386,21 +383,23 @@ export default function PostPage() {
       </div>
 
       {/* Reply Composer box */}
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 shadow-xs space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-850 dark:text-neutral-200">Compose Reply</h3>
-        <form onSubmit={handleComposeAnswerSubmit} className="space-y-4">
+      <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark space-y-4">
+        <h3 className="text-[11px] font-[510] uppercase tracking-wider text-foreground">Compose Reply</h3>
+        <form onSubmit={composeForm.handleSubmit(handleComposeAnswerSubmit)} className="space-y-4">
           <textarea
-            value={answerText}
-            onChange={(e) => setAnswerText(e.target.value)}
+            {...composeForm.register("body")}
             placeholder="Type your explanation or solutions here..."
             rows={4}
-            className="w-full text-xs p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-hidden bg-neutral-50/20 resize-none"
+            className="w-full text-[13px] p-3 border border-border rounded-md focus:outline-none bg-background text-foreground resize-none"
           />
+          {composeForm.formState.errors.body && (
+            <p className="text-[10px] text-red-500 font-medium">{composeForm.formState.errors.body.message}</p>
+          )}
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={isPendingSubmit}
-              className="px-4 py-2 rounded-lg text-xs font-semibold bg-neutral-955 text-white dark:bg-white dark:text-neutral-955 hover:opacity-90 disabled:opacity-50 active:scale-98 transition-all"
+              className="px-4 py-2 rounded-full text-[13px] font-[510] bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 active:scale-98 transition-all"
             >
               {isPendingSubmit ? "Submitting..." : "Submit Answer"}
             </button>
@@ -410,50 +409,54 @@ export default function PostPage() {
 
       {/* EDIT POST DIALOG MODAL */}
       {isEditPostOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-lg p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Edit Discussion Post</h3>
-              <button onClick={() => setIsEditPostOpen(false)} className="p-1 text-neutral-400 hover:text-neutral-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-md border border-border bg-card shadow-lg p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-[14px] font-[510] text-foreground">Edit Discussion Post</h3>
+              <button onClick={() => setIsEditPostOpen(false)} className="p-1 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleEditPostSubmit} className="space-y-4 text-xs">
+            <form onSubmit={editPostForm.handleSubmit(handleEditPostSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-450">Title</label>
+                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Title</label>
                 <input 
                   type="text" 
-                  value={editPostTitle}
-                  onChange={(e) => setEditPostTitle(e.target.value)}
+                  {...editPostForm.register("title")}
                   placeholder="Ask a question..."
-                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800 p-2.5 focus:outline-hidden bg-neutral-50/20"
+                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
                 />
+                {editPostForm.formState.errors.title && (
+                  <p className="text-[10px] text-red-500 font-medium">{editPostForm.formState.errors.title.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-450">Details</label>
+                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Details</label>
                 <textarea 
-                  value={editPostBody}
-                  onChange={(e) => setEditPostBody(e.target.value)}
+                  {...editPostForm.register("body")}
                   placeholder="Describe your problem or explanation..."
                   rows={6}
-                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800 p-2.5 focus:outline-hidden bg-neutral-50/20 resize-none"
+                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground resize-none"
                 />
+                {editPostForm.formState.errors.body && (
+                  <p className="text-[10px] text-red-500 font-medium">{editPostForm.formState.errors.body.message}</p>
+                )}
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-neutral-150">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-border">
                 <button 
                   type="button" 
                   onClick={() => setIsEditPostOpen(false)}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-neutral-200 hover:bg-neutral-50"
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={updatePostMutation.isPending}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-neutral-955 text-white dark:bg-white dark:text-neutral-955 hover:opacity-90 disabled:opacity-50"
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
                 >
                   {updatePostMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
@@ -465,39 +468,41 @@ export default function PostPage() {
 
       {/* EDIT ANSWER DIALOG MODAL */}
       {editingAnswer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-955 shadow-lg p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Edit Your Answer</h3>
-              <button onClick={() => setEditingAnswer(null)} className="p-1 text-neutral-400 hover:text-neutral-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-md border border-border bg-card shadow-lg p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-[14px] font-[510] text-foreground">Edit Your Answer</h3>
+              <button onClick={() => setEditingAnswer(null)} className="p-1 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleEditAnswerSubmit} className="space-y-4 text-xs">
+            <form onSubmit={editAnswerForm.handleSubmit(handleEditAnswerSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-450">Explanation</label>
+                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Explanation</label>
                 <textarea 
-                  value={editAnswerBody}
-                  onChange={(e) => setEditAnswerBody(e.target.value)}
+                  {...editAnswerForm.register("body")}
                   placeholder="Provide your updated solution details..."
                   rows={6}
-                  className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800 p-2.5 focus:outline-hidden bg-neutral-50/20 resize-none"
+                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground resize-none"
                 />
+                {editAnswerForm.formState.errors.body && (
+                  <p className="text-[10px] text-red-500 font-medium">{editAnswerForm.formState.errors.body.message}</p>
+                )}
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-neutral-150">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-border">
                 <button 
                   type="button" 
                   onClick={() => setEditingAnswer(null)}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-neutral-200 hover:bg-neutral-50"
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={updateAnswerMutation.isPending}
-                  className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-neutral-955 text-white dark:bg-white dark:text-neutral-955 hover:opacity-90 disabled:opacity-50"
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
                 >
                   {updateAnswerMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>

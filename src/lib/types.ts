@@ -104,6 +104,7 @@ export interface AllPostsResponse {
   viewCount: number;
   solved: boolean;
   top3Answers: AnswerSummary[];
+  hasVoted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +121,7 @@ export interface PostResponse {
   viewCount: number;
   goodQuestionCount: number;
   answerCount: number;
+  hasVoted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +134,7 @@ export interface AnswerResponse {
   body: string;
   upvoteCount: number;
   isAccepted: boolean;
+  hasUpvoted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -343,4 +346,18 @@ export interface SearchMaterialsParams {
   resourceType?: string;
   sortBy?: "linkCount" | "createdAt";
   sortDir?: "asc" | "desc";
+}
+
+export interface UpdateSpaceBody {
+  name?: string;
+  description?: string;
+  category?: string;
+  courseCode?: string;
+}
+
+export interface SpaceRecommendationResponse {
+  space: SpaceResponse;
+  score: number;
+  methodCount: number;
+  reasons: string[];
 }

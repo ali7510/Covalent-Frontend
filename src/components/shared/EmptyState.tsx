@@ -14,13 +14,13 @@ export default function EmptyState({
   className = "",
 }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center p-12 text-center space-y-3 ${className}`}>
-      <div className="p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-150 dark:border-neutral-800 rounded-full">
-        {icon || <Inbox className="h-6 w-6 text-neutral-400" />}
+    <div className={`flex flex-col items-center justify-center p-12 text-center border border-border rounded-md bg-gradient-to-br from-background to-secondary/30 shadow-card-light dark:shadow-card-dark space-y-4 ${className}`}>
+      <div className="p-3.5 bg-card border border-border rounded-full shadow-sm">
+        {icon || <Inbox className="h-6 w-6 text-muted-foreground" />}
       </div>
-      <div>
-        <p className="text-sm font-semibold text-neutral-850 dark:text-neutral-250">{title}</p>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 font-light mt-0.5">{description}</p>
+      <div className="space-y-1">
+        <h3 className="text-[20px] leading-[26.6px] tracking-[-0.24px] font-[510] text-foreground">{title}</h3>
+        <p className="text-[13px] leading-[18px] text-muted-foreground font-normal max-w-sm mx-auto">{description}</p>
       </div>
     </div>
   )

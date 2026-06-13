@@ -219,13 +219,18 @@ export const handlers = [
   // ── Spaces ────────────────────────────────────────────────────────────────
   http.get(`${BASE}/spaces/all-spaces`, () => ok([fixtures.space])),
 
-  http.get(`${BASE}/spaces/active-spaces`, () =>
-    ok({ content: [fixtures.space], totalElements: 1, totalPages: 1, number: 0, size: 20 })
-  ),
+  http.get(`${BASE}/spaces/active-spaces`, () => ok([fixtures.space])),
 
-  http.get(`${BASE}/spaces/search`, () =>
-    ok({ content: [fixtures.space], totalElements: 1, totalPages: 1, number: 0, size: 20 })
-  ),
+  http.get(`${BASE}/spaces/search`, () => ok([fixtures.space])),
+
+  http.get(`${BASE}/recommendations/spaces`, () => ok([
+    {
+      space: fixtures.space,
+      score: 0.95,
+      methodCount: 2,
+      reasons: ["COURSE_MATCH", "SOCIAL"]
+    }
+  ])),
 
   http.get(`${BASE}/spaces/space-1`, () => ok(fixtures.space)),
 

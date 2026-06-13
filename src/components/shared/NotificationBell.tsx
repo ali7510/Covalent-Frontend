@@ -6,7 +6,7 @@ export default function NotificationBell() {
   if (unreadCount === 0) return null
 
   return (
-    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 text-[9px] font-bold px-1.5 shadow-xs shrink-0">
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[11px] font-medium flex items-center justify-center px-1 shadow-sm shrink-0">
       {unreadCount > 99 ? "99+" : unreadCount}
     </span>
   )

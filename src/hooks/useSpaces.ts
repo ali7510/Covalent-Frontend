@@ -7,6 +7,8 @@ import {
   joinSpace,
   leaveSpace,
   createSpace,
+  updateSpace,
+  promoteToAdmin,
 } from "@/services/spaces"
 import type {
   SearchSpacesParams,
@@ -14,6 +16,7 @@ import type {
   PagedResponse,
   MembershipResponse,
   CreateSpaceBody,
+  UpdateSpaceBody,
 } from "@/lib/types"
 
 export function useUserSpaces() {
@@ -24,7 +27,7 @@ export function useUserSpaces() {
 }
 
 export function useActiveSpaces(page = 0, size = 20, enabled = true) {
-  return useQuery<PagedResponse<SpaceResponse>, Error>({
+  return useQuery<SpaceResponse[], Error>({
     queryKey: ["activeSpaces", page, size],
     queryFn: () => getActiveSpaces(page, size),
     enabled,
@@ -32,7 +35,7 @@ export function useActiveSpaces(page = 0, size = 20, enabled = true) {
 }
 
 export function useSearchSpaces(params: SearchSpacesParams, enabled = true) {
-  return useQuery<PagedResponse<SpaceResponse>, Error>({
+  return useQuery<SpaceResponse[], Error>({
     queryKey: ["spaces", "search", params],
     queryFn: () => searchSpaces(params),
     enabled,
@@ -81,6 +84,28 @@ export function useCreateSpace() {
       queryClient.invalidateQueries({ queryKey: ["userSpaces"] })
       queryClient.invalidateQueries({ queryKey: ["activeSpaces"] })
       queryClient.invalidateQueries({ queryKey: ["spaces", "search"] })
+    },
+  })
+}
+
+export function useUpdateSpace() {
+  const queryClient = useQueryClient()
+  return useMutation<SpaceResponse, Error, { spaceId: string; body: UpdateSpaceBody }>({
+    mutationFn: ({ spaceId, body }) => updateSpace(spaceId, body),
+    onSuccess: (_, { spaceId }) => {
+      queryClient.invalidateQueries({ queryKey: ["space", spaceId] })
+      queryClient.invalidateQueries({ queryKey: ["userSpaces"] })
+    },
+  })
+}
+
+export function usePromoteToAdmin() {
+  const queryClient = useQueryClient()
+  return useMutation<void, Error, { spaceId: string; memberId: string }>({
+    mutationFn: ({ spaceId, memberId }) => promoteToAdmin(spaceId, memberId),
+    onSuccess: (_, { spaceId }) => {
+      queryClient.invalidateQueries({ queryKey: ["space", spaceId] })
+      queryClient.invalidateQueries({ queryKey: ["userSpaces"] })
     },
   })
 }

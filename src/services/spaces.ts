@@ -5,6 +5,7 @@ import type {
   CreateSpaceBody,
   SearchSpacesParams,
   PagedResponse,
+  UpdateSpaceBody,
 } from "../lib/types";
 
 const BASE = "/api/v1/spaces";
@@ -23,7 +24,7 @@ export async function getUserSpaces(): Promise<SpaceResponse[]> {
 export async function getActiveSpaces(
   page = 0,
   size = 20
-): Promise<PagedResponse<SpaceResponse>> {
+): Promise<SpaceResponse[]> {
   const res = await api.get(`${BASE}/active-spaces`, { params: { page, size } });
   return res.data.data;
 }
@@ -33,7 +34,7 @@ export async function getActiveSpaces(
 // ---------------------------------------------------------------------------
 export async function searchSpaces(
   params: SearchSpacesParams
-): Promise<PagedResponse<SpaceResponse>> {
+): Promise<SpaceResponse[]> {
   const res = await api.get(`${BASE}/search`, {
     params: {
       query: params.query,
@@ -95,4 +96,25 @@ export async function joinSpace(spaceId: string): Promise<MembershipResponse> {
 // ---------------------------------------------------------------------------
 export async function leaveSpace(spaceId: string): Promise<void> {
   await api.delete(`${BASE}/${spaceId}/leave`);
+}
+
+// ---------------------------------------------------------------------------
+// Update a space (admin only)
+// ---------------------------------------------------------------------------
+export async function updateSpace(
+  spaceId: string,
+  body: UpdateSpaceBody
+): Promise<SpaceResponse> {
+  const res = await api.patch(`${BASE}/${spaceId}`, body);
+  return res.data.data;
+}
+
+// ---------------------------------------------------------------------------
+// Promote a member to admin (admin only)
+// ---------------------------------------------------------------------------
+export async function promoteToAdmin(
+  spaceId: string,
+  memberId: string
+): Promise<void> {
+  await api.post(`${BASE}/${spaceId}/admins/${memberId}`);
 }

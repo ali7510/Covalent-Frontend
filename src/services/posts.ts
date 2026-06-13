@@ -135,17 +135,23 @@ export async function acceptAnswer(
   await api.post(`${BASE}/posts/${postId}/accepted-answer/${answerId}`);
 }
 
-export async function unacceptAnswer(postId: string): Promise<void> {
+export async function unacceptAnswer(
+  postId: string
+): Promise<void> {
   await api.delete(`${BASE}/posts/${postId}/accepted-answer`);
 }
 
 // ---------------------------------------------------------------------------
 // Upvote an answer
 // ---------------------------------------------------------------------------
-export async function upvoteAnswer(answerId: string): Promise<void> {
+export async function upvoteAnswer(
+  answerId: string
+): Promise<void> {
   await api.post(`${BASE}/answers/${answerId}/votes/upvote`);
 }
 
-export async function removeUpvote(answerId: string): Promise<void> {
+export async function removeUpvote(
+  answerId: string
+): Promise<void> {
   await api.delete(`${BASE}/answers/${answerId}/votes/upvote`);
 }

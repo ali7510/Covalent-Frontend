@@ -43,8 +43,8 @@ export default function ForgotPasswordForm() {
   if (isSubmitted) {
     return (
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-[20px] leading-[26.6px] tracking-[-0.24px] font-[510] text-foreground">Check your email</h2>
+        <p className="text-[13px] leading-[18px] text-muted-foreground font-normal">
           We've sent a password reset link to your email address. Please check your inbox.
         </p>
         <Link to="/login">
@@ -59,8 +59,8 @@ export default function ForgotPasswordForm() {
   return (
     <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
       <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Forgot password?</h1>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-[20px] leading-[26.6px] tracking-[-0.24px] font-[510] text-foreground">Forgot password?</h2>
+        <p className="text-[13px] leading-[18px] text-muted-foreground font-normal">
           Enter your email address and we'll send you a link to reset your password.
         </p>
       </div>
@@ -72,7 +72,7 @@ export default function ForgotPasswordForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-[13px] font-[510] text-foreground">Email</FormLabel>
                 <FormControl>
                   <Input placeholder="name@example.com" type="email" {...field} />
                 </FormControl>
@@ -85,10 +85,10 @@ export default function ForgotPasswordForm() {
           </Button>
         </form>
       </Form>
-      
-      <p className="px-8 text-center text-sm text-muted-foreground">
+
+      <p className="px-8 text-center text-[13px] text-muted-foreground font-normal">
         Remember your password?{" "}
-        <Link to="/login" className="font-semibold text-primary hover:underline">
+        <Link to="/login" className="font-[510] text-primary hover:underline">
           Sign in
         </Link>
       </p>

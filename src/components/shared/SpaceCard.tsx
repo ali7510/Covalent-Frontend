@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Users, FolderKanban, ChevronRight } from "lucide-react"
 import type { SpaceResponse } from "@/lib/types"
 import { useUserSpaces, useJoinSpace, useLeaveSpace } from "@/hooks/useSpaces"
@@ -10,6 +10,7 @@ interface SpaceCardProps {
 }
 
 export default function SpaceCard({ space }: SpaceCardProps) {
+  const navigate = useNavigate()
   const { data: mySpaces } = useUserSpaces()
   const joinMutation = useJoinSpace()
   const leaveMutation = useLeaveSpace()
@@ -34,59 +35,77 @@ export default function SpaceCard({ space }: SpaceCardProps) {
     }
   }
 
+  const handleCardClick = () => {
+    if (isJoined) {
+      navigate(`/spaces/${space.id}`)
+    }
+  }
+
   return (
-    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow duration-200 group">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="inline-block text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-250 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
+    <div 
+      onClick={handleCardClick}
+      className={`bg-card border border-border rounded-md pt-6 px-6 pb-7 flex flex-col justify-between shadow-card-light dark:shadow-card-dark hover:border-primary/30 transition-all duration-150 group ${
+        isJoined ? "cursor-pointer" : ""
+      }`}
+    >
+      {/* Top Row: Category Badge and Member Count */}
+      <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+        {space.category ? (
+          <span className="rounded-full bg-secondary text-secondary-foreground text-[13px] font-medium px-2 py-0.5">
+            {space.category === "COLLEGE_COURSE" ? "Course" : space.category.replace("_", " ")}
+          </span>
+        ) : (
+          <span className="rounded-full bg-secondary text-secondary-foreground text-[13px] font-medium px-2 py-0.5">
             {space.courseCode || space.slug}
           </span>
-          {space.category && (
-            <div className="flex items-center space-x-1 text-[10px] text-neutral-450 dark:text-neutral-550 font-semibold uppercase">
-              <FolderKanban className="h-3.5 w-3.5 text-neutral-400" />
-              <span>{space.category}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-white leading-snug group-hover:underline">
-            <Link to={`/spaces/${space.id}`}>{space.name}</Link>
-          </h3>
-          <p className="text-xs text-neutral-500 dark:text-neutral-450 leading-relaxed font-light line-clamp-2">
-            {space.description || "No description"}
-          </p>
+        )}
+        
+        <div className="flex items-center space-x-1.5 text-[13px] text-muted-foreground font-medium">
+          <Users size={14} className="text-muted-foreground" />
+          <span>{space.memberCount} Members</span>
         </div>
       </div>
 
-      {/* Card Footer */}
-      <div className="pt-4 mt-6 border-t border-neutral-100 dark:border-neutral-900 flex items-center justify-between gap-4">
-        <div className="flex items-center space-x-1.5 text-[10px] text-neutral-450 dark:text-neutral-500 font-semibold uppercase">
-          <Users className="h-3.5 w-3.5 text-neutral-400" />
-          <span>{space.memberCount} Members</span>
-        </div>
-
-        <div className="flex items-center space-x-2 shrink-0">
-          <button
-            onClick={handleJoinToggle}
-            disabled={isPending}
-            className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-[10px] font-semibold active:scale-98 transition-all duration-200 ${
-              isJoined
-                ? "bg-neutral-950 text-white border-neutral-950 dark:bg-white dark:text-neutral-950 dark:border-white hover:opacity-90"
-                : "border-neutral-200 dark:border-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-            }`}
+      {/* Middle Content */}
+      <div className="space-y-2 mb-6">
+        <h3 className="text-[20px] leading-[26.6px] tracking-[-0.24px] font-[510] text-foreground group-hover:underline">
+          <Link 
+            to={`/spaces/${space.id}`} 
+            onClick={(e) => {
+              if (!isJoined) e.preventDefault()
+            }}
           >
-            <span>{isJoined ? "Joined" : "Join Space"}</span>
-          </button>
-          
+            {space.name}
+          </Link>
+        </h3>
+        <p className="text-[15px] leading-[24px] tracking-[-0.165px] font-normal text-muted-foreground line-clamp-2">
+          {space.description || "No description provided."}
+        </p>
+      </div>
+
+      {/* Card Footer Actions */}
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-auto">
+        <button
+          onClick={handleJoinToggle}
+          disabled={isPending}
+          className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-[15px] font-[510] min-h-[40px] min-w-[100px] active:scale-98 transition-all duration-200 cursor-pointer ${
+            isJoined
+              ? "bg-primary text-primary-foreground hover:bg-accent shadow-btn-primary"
+              : "border border-primary text-primary hover:bg-primary/6"
+          }`}
+        >
+          <span>{isJoined ? "Joined" : "Join Space"}</span>
+        </button>
+        
+        {isJoined && (
           <Link
             to={`/spaces/${space.id}`}
-            className="inline-flex items-center space-x-1 rounded-lg border border-neutral-250 dark:border-neutral-800 px-3 py-1.5 text-[10px] font-semibold hover:bg-neutral-50 dark:hover:bg-neutral-900 active:scale-98 transition-all"
+            className="inline-flex items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted px-4 py-2 text-[15px] font-[510] min-h-[40px] active:scale-98 transition-all"
           >
             <span>Enter</span>
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Link>
-        </div>
+        )}
       </div>
     </div>
   )

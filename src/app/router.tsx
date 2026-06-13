@@ -9,14 +9,13 @@ import PostPage from "@/features/posts/pages/PostPage"
 import ProfilePage from "@/features/users/pages/ProfilePage"
 import SpacePage from "@/features/spaces/pages/SpacePage"
 import SpaceSearchPage from "@/features/spaces/pages/SpaceSearchPage"
+import CreateSpacePage from "@/features/spaces/pages/CreateSpacePage"
+import SpaceSettingsPage from "@/features/spaces/pages/SpaceSettingsPage"
 
 import ProtectedRoute from "@/features/auth/ProtectedRoute"
 import PageLayout from "@/components/shared/PageLayout"
 
 export const router = createBrowserRouter([
-  // Public Redirect
-  { path: "/", element: <Navigate to="/login" replace /> },
-
   // Public Authentication Routes
   { path: "/login", element: <AuthPage /> },
   { path: "/register", element: <AuthPage /> },
@@ -30,9 +29,12 @@ export const router = createBrowserRouter([
       {
         element: <PageLayout />,
         children: [
-          { path: "/home", element: <HomePage /> },
-          { path: "/spaces/search", element: <SpaceSearchPage /> },
+          { path: "/", element: <HomePage /> },
+          { path: "/home", element: <Navigate to="/" replace /> },
+          { path: "/discover", element: <SpaceSearchPage /> },
+          { path: "/spaces/create", element: <CreateSpacePage /> },
           { path: "/spaces/:spaceId", element: <SpacePage /> },
+          { path: "/spaces/:spaceId/settings", element: <SpaceSettingsPage /> },
           { path: "/posts/:postId", element: <PostPage /> },
           { path: "/online-courses", element: <OnlineCoursesPage /> },
           { path: "/leaderboard", element: <LeaderboardPage /> },

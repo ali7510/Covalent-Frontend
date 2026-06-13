@@ -74,16 +74,16 @@ export default function NotificationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-3xl font-light tracking-tight text-neutral-900 dark:text-white">
-            Your <span className="font-semibold">Notifications</span>
+          <h1 className="text-[28px] leading-[1.2] tracking-[-0.5px] font-normal text-foreground">
+            Your <span className="font-[510]">Notifications</span>
           </h1>
-          <p className="text-neutral-500 dark:text-neutral-455 font-light max-w-2xl text-sm leading-relaxed">
+          <p className="text-muted-foreground font-normal max-w-2xl text-[14px] leading-relaxed">
             Stay updated with peer discussions, recently shared study materials, and academic achievements.
           </p>
         </div>
         <button 
           onClick={markAllAsRead}
-          className="self-start sm:self-center inline-flex items-center space-x-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-955 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-350 hover:bg-neutral-55 dark:hover:bg-neutral-900 active:scale-98 transition-all"
+          className="self-start sm:self-center inline-flex items-center space-x-2 rounded-full border border-border bg-card px-4 py-2 text-[12px] font-[510] text-foreground hover:bg-secondary active:scale-98 transition-all"
         >
           <Check className="h-4 w-4" />
           <span>Mark page as read</span>
@@ -91,16 +91,16 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex items-center space-x-2 border-b border-neutral-200 dark:border-neutral-800 pb-3">
+      <div className="flex items-center space-x-2 border-b border-border pb-3">
         <button
           onClick={() => {
             setActiveTab("all")
             setPageNumber(0)
           }}
-          className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+          className={`px-4 py-1.5 rounded-md text-[12px] font-[510] transition-all duration-200 ${
             activeTab === "all"
-              ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950"
-              : "text-neutral-550 hover:text-neutral-900 dark:text-neutral-450 dark:hover:text-neutral-250"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           All Notifications ({page?.totalElements ?? notifications.length})
@@ -110,10 +110,10 @@ export default function NotificationsPage() {
             setActiveTab("unread")
             setPageNumber(0)
           }}
-          className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+          className={`px-4 py-1.5 rounded-md text-[12px] font-[510] transition-all duration-200 ${
             activeTab === "unread"
-              ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-950"
-              : "text-neutral-550 hover:text-neutral-900 dark:text-neutral-450 dark:hover:text-neutral-250"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Unread ({unreadCount})
@@ -121,17 +121,17 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notifications List */}
-      <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden shadow-xs">
+      <div className="rounded-md border border-border bg-card overflow-hidden shadow-card-light dark:shadow-card-dark">
         {isLoading ? (
           <LoadingState message="Loading notifications…" />
         ) : filteredNotifications.length === 0 ? (
           <EmptyState
-            icon={<Bell className="h-6 w-6 text-neutral-400" />}
+            icon={<Bell className="h-6 w-6 text-muted-foreground" />}
             title="No notifications found"
             description="Everything caught up and active!"
           />
         ) : (
-          <div className="divide-y divide-neutral-100 dark:divide-neutral-900">
+          <div className="divide-y divide-border">
             {filteredNotifications.map((notif) => {
               const Icon = getIcon(notif.notificationType)
               const timeAgo = (() => {
@@ -148,34 +148,34 @@ export default function NotificationsPage() {
                   onClick={() => handleClick(notif)}
                   className={`flex items-start justify-between p-5 cursor-pointer transition-colors duration-150 ${
                     notif.isRead 
-                      ? "bg-white dark:bg-neutral-950 hover:bg-neutral-50/30 dark:hover:bg-neutral-900/5" 
-                      : "bg-neutral-50/50 dark:bg-neutral-900/10 hover:bg-neutral-50/80 dark:hover:bg-neutral-900/15"
+                      ? "bg-card hover:bg-secondary/20" 
+                      : "bg-secondary/30 hover:bg-secondary/50"
                   }`}
                 >
                   <div className="flex items-start space-x-4">
                     {/* Icon Column */}
-                    <div className={`p-2.5 rounded-lg border ${
+                    <div className={`p-2.5 rounded-md border ${
                       notif.isRead
-                        ? "bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-450 dark:text-neutral-500"
-                        : "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white"
+                        ? "bg-secondary border-border text-muted-foreground"
+                        : "bg-card border-border text-foreground"
                     }`}>
-                      <Icon className="h-4.5 w-4.5" />
+                      <Icon className="h-4 w-4" />
                     </div>
 
                     {/* Message Column */}
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <h4 className={`text-xs font-semibold leading-none ${notif.isRead ? "text-neutral-850 dark:text-neutral-300" : "text-neutral-950 dark:text-white"}`}>
+                        <h4 className={`text-[12px] font-[510] leading-none ${notif.isRead ? "text-muted-foreground" : "text-foreground"}`}>
                           {notif.title}
                         </h4>
                         {!notif.isRead && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-white" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                         )}
                       </div>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-450 font-light leading-relaxed max-w-xl">
+                      <p className="text-[12px] text-muted-foreground font-normal leading-relaxed max-w-xl">
                         {notif.message}
                       </p>
-                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block pt-0.5">{timeAgo}</span>
+                      <span className="text-[10px] text-muted-foreground block pt-0.5">{timeAgo}</span>
                     </div>
                   </div>
                 </div>
@@ -187,21 +187,21 @@ export default function NotificationsPage() {
 
       {/* Pagination Controls */}
       {page && page.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-neutral-100 dark:border-neutral-900 pt-4 mt-4 text-xs font-semibold">
+        <div className="flex items-center justify-between border-t border-border pt-4 mt-4 text-[12px] font-[510]">
           <button
             onClick={() => setPageNumber((p) => Math.max(0, p - 1))}
             disabled={pageNumber === 0}
-            className="px-3.5 py-2 rounded-lg border border-neutral-200 dark:border-neutral-800 disabled:opacity-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+            className="px-3.5 py-2 rounded-md border border-border disabled:opacity-50 hover:bg-secondary transition-colors"
           >
             Previous
           </button>
-          <span className="text-neutral-450 font-normal">
+          <span className="text-muted-foreground font-normal">
             Page {pageNumber + 1} of {page.totalPages}
           </span>
           <button
             onClick={() => setPageNumber((p) => p + 1)}
             disabled={pageNumber + 1 >= page.totalPages}
-            className="px-3.5 py-2 rounded-lg border border-neutral-200 dark:border-neutral-800 disabled:opacity-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+            className="px-3.5 py-2 rounded-md border border-border disabled:opacity-50 hover:bg-secondary transition-colors"
           >
             Next
           </button>
