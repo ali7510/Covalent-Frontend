@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getSpacePosts,
+  searchPosts,
   getPost,
   getAnswers,
   createPost,
@@ -26,11 +27,11 @@ import type {
   UpdateAnswerBody,
 } from "@/lib/types"
 
-export function useSpacePosts(spaceId: string | undefined, page = 0, size = 20) {
+export function useSpacePosts(spaceId: string | undefined, page = 0, size = 20, enabled = true) {
   return useQuery<AllPostsResponse[], Error>({
     queryKey: ["spacePosts", spaceId, page, size],
     queryFn: () => getSpacePosts(spaceId || "", page, size),
-    enabled: !!spaceId,
+    enabled: enabled && !!spaceId,
   })
 }
 
@@ -39,6 +40,7 @@ export function usePost(postId: string | undefined) {
     queryKey: ["post", postId],
     queryFn: () => getPost(postId || ""),
     enabled: !!postId,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -197,5 +199,32 @@ export function useRemoveUpvoteAnswer(postId: string | undefined) {
         queryClient.invalidateQueries({ queryKey: ["answers", postId] })
       }
     },
+  })
+}
+
+export function useSearchSpacePosts(
+  spaceId: string | undefined,
+  params: {
+    query?: string
+    isSolved?: boolean
+    sortBy?: "goodQuestionCount" | "createdAt"
+    sortDir?: "asc" | "desc"
+    page?: number
+    size?: number
+  },
+  enabled = true
+) {
+  return useQuery<AllPostsResponse[], Error>({
+    queryKey: ["spacePostsSearch", spaceId, params],
+    queryFn: () =>
+      searchPosts(spaceId || "", {
+        query: params.query,
+        isSolved: params.isSolved,
+        sortBy: params.sortBy,
+        sortDir: params.sortDir,
+        page: params.page,
+        size: params.size,
+      }),
+    enabled: enabled && !!spaceId,
   })
 }

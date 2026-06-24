@@ -19,8 +19,8 @@ export const registerSchema = z.object({
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
   studentId: z.string().regex(/^\d{8}$/, "Student ID must be exactly 8 digits").optional().or(z.literal("")),
-  academicYear: z.coerce.number().min(1).max(5).optional().or(z.literal(0)).or(z.literal("")),
-  currentSemester: z.coerce.number().min(1).max(10).optional().or(z.literal(0)).or(z.literal("")),
+  academicYear: z.coerce.number().min(1).max(4).optional().or(z.literal(0)).or(z.literal("")),
+  currentSemester: z.coerce.number().min(1).max(8).optional().or(z.literal(0)).or(z.literal("")),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"]

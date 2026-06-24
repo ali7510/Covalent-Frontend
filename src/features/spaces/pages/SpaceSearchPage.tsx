@@ -12,6 +12,8 @@ export default function SpaceSearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState<string>("ALL")
+  const [sortBy, setSortBy] = useState<"createdAt" | "memberCount">("createdAt")
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc")
 
   // Join hook
   const joinMutation = useJoinSpace()
@@ -35,6 +37,8 @@ export default function SpaceSearchPage() {
   const { data: searchResult, isLoading: searchLoading } = useSearchSpaces({
     query: debouncedQuery.trim() || undefined,
     category: activeCategory !== "ALL" ? activeCategory : undefined,
+    sortBy,
+    sortDir,
     page: 0,
     size: 20,
   }, hasFilter)
@@ -81,21 +85,43 @@ export default function SpaceSearchPage() {
         />
       </div>
 
-      {/* Category Selection Filter Chips */}
-      <div className="flex flex-wrap items-center gap-2">
-        {(["ALL", "COLLEGE_COURSE", "TUTORIAL", "PROGRAMMING_LANGUAGE", "FRAMEWORK"] as const).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-[12px] font-[510] border transition-all duration-200 ${
-              activeCategory === cat
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card border-border text-muted-foreground hover:text-foreground"
-            }`}
+      {/* Category + Sort row */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Category Filter Chips */}
+        <div className="flex flex-wrap items-center gap-2 flex-1">
+          {(["ALL", "COLLEGE_COURSE", "TUTORIAL", "PROGRAMMING_LANGUAGE", "FRAMEWORK"] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-1.5 rounded-full text-[12px] font-[510] border transition-all duration-200 ${
+                activeCategory === cat
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {cat === "ALL" ? "All Categories" : cat === "COLLEGE_COURSE" ? "COURSE" : cat.replace("_", " ")}
+            </button>
+          ))}
+        </div>
+
+        {/* Order By selector */}
+        <div className="flex items-center space-x-2 shrink-0">
+          <span className="text-[11px] font-[510] text-muted-foreground uppercase tracking-wide">Order by</span>
+          <select
+            value={`${sortBy}_${sortDir}`}
+            onChange={(e) => {
+              const [by, dir] = e.target.value.split("_") as ["createdAt" | "memberCount", "desc" | "asc"]
+              setSortBy(by)
+              setSortDir(dir)
+            }}
+            className="rounded-md border border-border bg-card text-foreground text-[12px] font-[510] px-2.5 py-1.5 focus:outline-none hover:bg-secondary transition-colors"
           >
-            {cat === "ALL" ? "All Categories" : cat === "COLLEGE_COURSE" ? "COURSE" : cat.replace("_", " ")}
-          </button>
-        ))}
+            <option value="createdAt_desc">Newest First</option>
+            <option value="createdAt_asc">Oldest First</option>
+            <option value="memberCount_desc">Most Members</option>
+            <option value="memberCount_asc">Least Members</option>
+          </select>
+        </div>
       </div>
 
       {/* Recommended Spaces Section (shown when no active filter) */}

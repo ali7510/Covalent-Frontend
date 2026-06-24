@@ -9,7 +9,7 @@ import { useUpdateProfile, useChangePassword, useToggleEmailPrefs, useToggleInAp
 import UserAvatar from "@/components/shared/UserAvatar"
 import LoadingState from "@/components/shared/LoadingState"
 import EmptyState from "@/components/shared/EmptyState"
-import { GraduationCap, Mail, Settings as SettingsIcon, BookOpen, Award, Flame, Plus, X, Lock, User, Bell, Trash2, TrendingUp, CheckCircle } from "lucide-react"
+import { GraduationCap, Mail, Settings as SettingsIcon, BookOpen, Award, Flame, Plus, X, Lock, User, Bell, Trash2, TrendingUp, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 import axios from "axios"
 
@@ -102,6 +102,11 @@ export default function ProfilePage() {
     const val = localStorage.getItem("inAppNotifs")
     return val === null ? true : val === "true"
   })
+
+  // Password visibility states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Hooks
   const updateProfileMutation = useUpdateProfile()
@@ -251,6 +256,9 @@ export default function ProfilePage() {
         localStorage.setItem("emailNotifs", String(next))
         toast.success("Email preference toggled")
       },
+      onError: () => {
+        toast.error("Failed to update email notification preference")
+      },
     })
   }
 
@@ -261,6 +269,9 @@ export default function ProfilePage() {
         setInAppNotifs(next)
         localStorage.setItem("inAppNotifs", String(next))
         toast.success("In-App preference toggled")
+      },
+      onError: () => {
+        toast.error("Failed to update in-app notification preference")
       },
     })
   }
@@ -657,12 +668,22 @@ export default function ProfilePage() {
                 <form onSubmit={passwordForm.handleSubmit(handleChangePasswordSubmit)} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Current Password</label>
-                    <input
-                      type="password"
-                      {...passwordForm.register("currentPassword")}
-                      placeholder="••••••••"
-                      className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        {...passwordForm.register("currentPassword")}
+                        placeholder="••••••••"
+                        className="w-full rounded-md border border-border p-2.5 pr-10 focus:outline-none bg-background text-foreground"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
                     {passwordForm.formState.errors.currentPassword && (
                       <p className="text-[10px] text-red-500">{passwordForm.formState.errors.currentPassword.message}</p>
                     )}
@@ -671,24 +692,44 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">New Password</label>
-                      <input
-                        type="password"
-                        {...passwordForm.register("newPassword")}
-                        placeholder="••••••••"
-                        className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          {...passwordForm.register("newPassword")}
+                          placeholder="••••••••"
+                          className="w-full rounded-md border border-border p-2.5 pr-10 focus:outline-none bg-background text-foreground"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showNewPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
                       {passwordForm.formState.errors.newPassword && (
                         <p className="text-[10px] text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
                       )}
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Confirm New Password</label>
-                      <input
-                        type="password"
-                        {...passwordForm.register("confirmPassword")}
-                        placeholder="••••••••"
-                        className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          {...passwordForm.register("confirmPassword")}
+                          placeholder="••••••••"
+                          className="w-full rounded-md border border-border p-2.5 pr-10 focus:outline-none bg-background text-foreground"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
                       {passwordForm.formState.errors.confirmPassword && (
                         <p className="text-[10px] text-red-500">{passwordForm.formState.errors.confirmPassword.message}</p>
                       )}

@@ -62,7 +62,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar-bg text-sidebar-fg px-3 py-4 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar-bg text-sidebar-fg px-3 py-4 transition-transform duration-300 ease-in-out overflow-y-auto lg:translate-x-0 ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Sidebar Brand Header */}
@@ -132,7 +132,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
 
           {/* Divider + About Us pinned to bottom */}
-          <div className="mt-auto pt-4 space-y-1.5">
+          <div className="mt-auto pt-4 space-y-1.5 pb-6">
             <div className="border-t border-sidebar-border my-2" />
             
             <NavLink

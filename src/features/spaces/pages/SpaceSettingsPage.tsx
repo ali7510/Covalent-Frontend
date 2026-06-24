@@ -3,8 +3,7 @@ import { Link } from "react-router-dom"
 import { isAxiosError } from "axios"
 import { ArrowLeft, Settings, Save, Shield, X, UserCheck } from "lucide-react"
 import { useCurrentSpace } from "@/hooks/useCurrentSpace"
-import { useUpdateSpace, usePromoteToAdmin } from "@/hooks/useSpaces"
-import { useSpaceLeaderboard } from "@/hooks/useGamification"
+import { useUpdateSpace, usePromoteToAdmin, useSpaceMembers } from "@/hooks/useSpaces"
 import { toast } from "sonner"
 import type { UpdateSpaceBody } from "@/lib/types"
 import LoadingState from "@/components/shared/LoadingState"
@@ -32,7 +31,7 @@ export default function SpaceSettingsPage() {
 
   const updateMutation = useUpdateSpace()
   const promoteMutation = usePromoteToAdmin()
-  const { data: leaderboard, isLoading: lbLoading } = useSpaceLeaderboard(spaceId)
+  const { data: members, isLoading: membersLoading } = useSpaceMembers(spaceId)
 
   const {
     register,
@@ -255,33 +254,35 @@ export default function SpaceSettingsPage() {
           <h2 className="text-[15px] leading-[24px] font-[510] text-foreground">Promote to Admin</h2>
         </div>
         <p className="text-[13px] leading-[18px] text-muted-foreground font-normal">
-          Select a member from the leaderboard to promote as a space co-admin.
+          Select a regular member to grant them co-admin privileges for this space.
         </p>
 
-        {lbLoading ? (
+        {membersLoading ? (
           <LoadingState message="Loading members…" />
-        ) : !leaderboard || leaderboard.length === 0 ? (
-          <EmptyState title="No members yet" description="No leaderboard entries found for this space." />
+        ) : !members || members.filter(m => m.role === "MEMBER").length === 0 ? (
+          <EmptyState title="No eligible members" description="There are currently no other members to promote." />
         ) : (
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {leaderboard.map((entry) => (
+            {members
+              .filter(m => m.role === "MEMBER")
+              .map((member) => (
               <div
-                key={entry.userId}
+                key={member.userId}
                 className="flex items-center justify-between p-3.5 rounded-md border border-border bg-secondary/40 hover:bg-secondary transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  <span className="text-[11px] font-[510] text-muted-foreground w-5 text-center">
-                    #{entry.rank}
-                  </span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary border border-border text-[12px] font-[510] text-foreground">
+                    {member.userName?.charAt(0) || "U"}
+                  </div>
                   <div>
-                    <p className="text-[13px] font-[510] text-foreground">{entry.fullName}</p>
+                    <p className="text-[13px] font-[510] text-foreground">{member.userName}</p>
                     <p className="text-[11px] text-muted-foreground font-normal">
-                      {entry.xpPoints} XP · {entry.postsInSpace} posts · {entry.answersInSpace} answers
+                      Member since {new Date(member.joinedAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setPromotingMember({ userId: entry.userId, fullName: entry.fullName })}
+                  onClick={() => setPromotingMember({ userId: member.userId, fullName: member.userName })}
                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-[12px] font-[510] bg-foreground text-background hover:opacity-90 active:scale-98 transition-all"
                 >
                   <Shield className="h-3 w-3" />

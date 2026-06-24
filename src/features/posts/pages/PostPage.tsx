@@ -385,26 +385,35 @@ export default function PostPage() {
       {/* Reply Composer box */}
       <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark space-y-4">
         <h3 className="text-[11px] font-[510] uppercase tracking-wider text-foreground">Compose Reply</h3>
-        <form onSubmit={composeForm.handleSubmit(handleComposeAnswerSubmit)} className="space-y-4">
-          <textarea
-            {...composeForm.register("body")}
-            placeholder="Type your explanation or solutions here..."
-            rows={4}
-            className="w-full text-[13px] p-3 border border-border rounded-md focus:outline-none bg-background text-foreground resize-none"
-          />
-          {composeForm.formState.errors.body && (
-            <p className="text-[10px] text-red-500 font-medium">{composeForm.formState.errors.body.message}</p>
-          )}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isPendingSubmit}
-              className="px-4 py-2 rounded-full text-[13px] font-[510] bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 active:scale-98 transition-all"
-            >
-              {isPendingSubmit ? "Submitting..." : "Submit Answer"}
-            </button>
+        {isPostAuthor ? (
+          <div className="flex items-start space-x-3 p-3.5 rounded-md bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+            <span className="text-amber-600 dark:text-amber-400 text-[11px] font-[510] mt-0.5">⚠</span>
+            <p className="text-[12px] text-amber-700 dark:text-amber-300 font-normal leading-relaxed">
+              You cannot answer your own question. Others can reply to your post.
+            </p>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={composeForm.handleSubmit(handleComposeAnswerSubmit)} className="space-y-4">
+            <textarea
+              {...composeForm.register("body")}
+              placeholder="Type your explanation or solutions here..."
+              rows={4}
+              className="w-full text-[13px] p-3 border border-border rounded-md focus:outline-none bg-background text-foreground resize-none"
+            />
+            {composeForm.formState.errors.body && (
+              <p className="text-[10px] text-red-500 font-medium">{composeForm.formState.errors.body.message}</p>
+            )}
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isPendingSubmit}
+                className="px-4 py-2 rounded-full text-[13px] font-[510] bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 active:scale-98 transition-all"
+              >
+                {isPendingSubmit ? "Submitting..." : "Submit Answer"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* EDIT POST DIALOG MODAL */}

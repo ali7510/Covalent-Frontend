@@ -222,7 +222,7 @@ export default function RegisterForm() {
                   <FormItem>
                     <FormLabel className="text-[13px] font-[510] text-foreground">Year (Opt)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} max={5} placeholder="1" {...field} />
+                      <Input type="number" min={1} max={4} placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +235,7 @@ export default function RegisterForm() {
                   <FormItem>
                     <FormLabel className="text-[13px] font-[510] text-foreground">Sem (Opt)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} max={10} placeholder="1" {...field} />
+                      <Input type="number" min={1} max={8} placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

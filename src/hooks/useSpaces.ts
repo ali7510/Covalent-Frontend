@@ -9,6 +9,7 @@ import {
   createSpace,
   updateSpace,
   promoteToAdmin,
+  getSpaceMembers,
 } from "@/services/spaces"
 import type {
   SearchSpacesParams,
@@ -106,6 +107,15 @@ export function usePromoteToAdmin() {
     onSuccess: (_, { spaceId }) => {
       queryClient.invalidateQueries({ queryKey: ["space", spaceId] })
       queryClient.invalidateQueries({ queryKey: ["userSpaces"] })
+      queryClient.invalidateQueries({ queryKey: ["spaceMembers", spaceId] })
     },
+  })
+}
+
+export function useSpaceMembers(spaceId: string | undefined) {
+  return useQuery<MembershipResponse[], Error>({
+    queryKey: ["spaceMembers", spaceId],
+    queryFn: () => getSpaceMembers(spaceId || ""),
+    enabled: !!spaceId,
   })
 }

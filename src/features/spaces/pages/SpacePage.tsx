@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { isAxiosError } from "axios"
-import { Users, FileText, Plus, X, Trophy, Bookmark, Settings } from "lucide-react"
+import { Users, FileText, Plus, X, Trophy, Bookmark, Settings, Search } from "lucide-react"
 import { useSpace, useUserSpaces, useJoinSpace, useLeaveSpace } from "@/hooks/useSpaces"
 import { useCurrentSpace } from "@/hooks/useCurrentSpace"
-import { useSpacePosts, useCreatePost } from "@/hooks/usePosts"
+import { useSpacePosts, useSearchSpacePosts, useCreatePost } from "@/hooks/usePosts"
 import {
   useSpaceMaterials,
+  useSearchMaterials,
   useBookmarkedMaterials,
   useUploadFile,
   useShareLink,
@@ -90,10 +91,85 @@ export default function SpacePage() {
   // Edit Resource Modal State
   const [editingMaterial, setEditingMaterial] = useState<{ id: string; title: string; description: string; resourceType: string; url?: string } | null>(null)
 
+  const [postsSearchQuery, setPostsSearchQuery] = useState("")
+  const [postsDebouncedQuery, setPostsDebouncedQuery] = useState("")
+  const [postsFilterSolved, setPostsFilterSolved] = useState<"all" | "solved" | "unsolved">("all")
+  const [postsSortBy, setPostsSortBy] = useState<"createdAt" | "goodQuestionCount">("createdAt")
+  const [postsSortDir, setPostsSortDir] = useState<"desc" | "asc">("desc")
+
+  const [materialsSearchQuery, setMaterialsSearchQuery] = useState("")
+  const [materialsDebouncedQuery, setMaterialsDebouncedQuery] = useState("")
+  const [materialsSortBy, setMaterialsSortBy] = useState<"createdAt" | "linkCount">("createdAt")
+  const [materialsSortDir, setMaterialsSortDir] = useState<"desc" | "asc">("desc")
+
+  // Debounce post search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setPostsDebouncedQuery(postsSearchQuery)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [postsSearchQuery])
+
+  // Debounce materials search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setMaterialsDebouncedQuery(materialsSearchQuery)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [materialsSearchQuery])
+
   // API State Fetching
   const { data: space, isLoading: spaceLoading } = useSpace(spaceId)
-  const { data: postsPageData, isLoading: postsLoading } = useSpacePosts(spaceId, postsPage, postsPageSize)
-  const { data: materials, isLoading: materialsLoading } = useSpaceMaterials(spaceId, materialsPage, materialsPageSize)
+
+  // Use search/filters for posts dynamically
+  const hasPostsSearch = postsDebouncedQuery.trim() !== "" || postsFilterSolved !== "all" || postsSortBy !== "createdAt" || postsSortDir !== "desc"
+
+  const { data: defaultPosts, isLoading: defaultPostsLoading } = useSpacePosts(
+    spaceId,
+    postsPage,
+    postsPageSize,
+    !hasPostsSearch
+  )
+
+  const { data: searchedPosts, isLoading: searchedPostsLoading } = useSearchSpacePosts(
+    spaceId,
+    {
+      query: postsDebouncedQuery.trim() || undefined,
+      isSolved: postsFilterSolved === "solved" ? true : postsFilterSolved === "unsolved" ? false : undefined,
+      sortBy: postsSortBy,
+      sortDir: postsSortDir,
+      page: postsPage,
+      size: postsPageSize,
+    },
+    hasPostsSearch
+  )
+
+  const posts = hasPostsSearch ? (searchedPosts || []) : (defaultPosts || [])
+  const postsLoading = hasPostsSearch ? searchedPostsLoading : defaultPostsLoading
+
+  // Use search/filters for materials dynamically
+  const hasMaterialsSearch = materialsDebouncedQuery.trim() !== "" || materialsSortBy !== "createdAt" || materialsSortDir !== "desc"
+
+  const { data: defaultMaterials, isLoading: defaultMaterialsLoading } = useSpaceMaterials(
+    spaceId,
+    materialsPage,
+    materialsPageSize,
+    !hasMaterialsSearch
+  )
+
+  const { data: searchedMaterials, isLoading: searchedMaterialsLoading } = useSearchMaterials(
+    spaceId,
+    {
+      query: materialsDebouncedQuery.trim() || undefined,
+      sortBy: materialsSortBy,
+      sortDir: materialsSortDir,
+    },
+    hasMaterialsSearch
+  )
+
+  const materials = !hasMaterialsSearch ? defaultMaterials : { content: searchedMaterials || [], totalElements: searchedMaterials?.length || 0, totalPages: 1 }
+  const materialsLoading = hasMaterialsSearch ? searchedMaterialsLoading : defaultMaterialsLoading
+
   const { data: bookmarkedMaterials, isLoading: bookmarksLoading } = useBookmarkedMaterials(spaceId, 0, 100)
   const { data: leaderboard, isLoading: lbLoading } = useSpaceLeaderboard(spaceId)
   const { data: mySpaces } = useUserSpaces()
@@ -109,7 +185,6 @@ export default function SpacePage() {
   const updateMaterialMutation = useUpdateMaterial(spaceId)
   const deleteMaterialMutation = useDeleteMaterial(spaceId)
 
-  const posts = postsPageData || []
   const materialsList = materials?.content || []
   const bookmarkedList = bookmarkedMaterials?.content || []
 
@@ -420,10 +495,60 @@ export default function SpacePage() {
 
           {activeTab === "posts" && (
             <div className="space-y-4">
+              {/* Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={postsSearchQuery}
+                    onChange={(e) => {
+                      setPostsSearchQuery(e.target.value)
+                      setPostsPage(0)
+                    }}
+                    placeholder="Search discussions by title or body..."
+                    className="w-full rounded-md border border-border pl-9 pr-4 py-2 text-[12px] bg-card text-foreground focus:outline-none"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select
+                    value={postsFilterSolved}
+                    onChange={(e) => {
+                      setPostsFilterSolved(e.target.value as any)
+                      setPostsPage(0)
+                    }}
+                    className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-[12px] focus:outline-none"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="solved">Solved</option>
+                    <option value="unsolved">Unsolved</option>
+                  </select>
+
+                  <select
+                    value={`${postsSortBy}-${postsSortDir}`}
+                    onChange={(e) => {
+                      const [field, dir] = e.target.value.split("-")
+                      setPostsSortBy(field as any)
+                      setPostsSortDir(dir as any)
+                      setPostsPage(0)
+                    }}
+                    className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-[12px] focus:outline-none"
+                  >
+                    <option value="createdAt-desc">Newest First</option>
+                    <option value="createdAt-asc">Oldest First</option>
+                    <option value="goodQuestionCount-desc">Popularity</option>
+                  </select>
+                </div>
+              </div>
+
               {postsLoading ? (
                 <LoadingState message="Loading discussions…" />
               ) : posts.length === 0 ? (
-                <EmptyState title="No discussions yet" description="Be the first to ask a question in this space." />
+                <EmptyState 
+                  title={hasPostsSearch ? "No matching discussions" : "No discussions yet"} 
+                  description={hasPostsSearch ? "Try adjusting your search terms or filters." : "Be the first to ask a question in this space."} 
+                />
               ) : (
                 <>
                   <div className="space-y-4">
@@ -475,18 +600,61 @@ export default function SpacePage() {
                 ))}
               </div>
 
+              {/* Search & Sort Bar for Resources */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={materialsSearchQuery}
+                    onChange={(e) => {
+                      setMaterialsSearchQuery(e.target.value)
+                      setMaterialsPage(0)
+                    }}
+                    placeholder="Search resources by title or description..."
+                    className="w-full rounded-md border border-border pl-9 pr-4 py-2 text-[12px] bg-card text-foreground focus:outline-none"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select
+                    value={`${materialsSortBy}-${materialsSortDir}`}
+                    onChange={(e) => {
+                      const [field, dir] = e.target.value.split("-")
+                      setMaterialsSortBy(field as any)
+                      setMaterialsSortDir(dir as any)
+                      setMaterialsPage(0)
+                    }}
+                    className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-[12px] focus:outline-none"
+                  >
+                    <option value="createdAt-desc">Newest First</option>
+                    <option value="createdAt-asc">Oldest First</option>
+                    <option value="linkCount-desc">Popularity</option>
+                  </select>
+                </div>
+              </div>
+
               {materialsLoading || bookmarksLoading ? (
                 <LoadingState message="Loading resources…" />
               ) : (
                 <div className="space-y-4">
                   {materialSubTab === "all" && materialsList.length === 0 && (
-                    <EmptyState title="No resources shared yet" description="Upload study slides or share references." />
+                    <EmptyState 
+                      title={hasMaterialsSearch ? "No matching resources" : "No resources shared yet"} 
+                      description={hasMaterialsSearch ? "Try adjusting your search terms or filters." : "Upload study slides or share references."} 
+                    />
                   )}
                   {materialSubTab === "files" && files.length === 0 && (
-                    <EmptyState title="No worksheet files yet" description="Lecture sheets or docs will appear here." />
+                    <EmptyState 
+                      title={hasMaterialsSearch ? "No matching worksheet files" : "No worksheet files yet"} 
+                      description={hasMaterialsSearch ? "Try adjusting your search terms or filters." : "Lecture sheets or docs will appear here."} 
+                    />
                   )}
                   {materialSubTab === "links" && links.length === 0 && (
-                    <EmptyState title="No references yet" description="Course external URLs will appear here." />
+                    <EmptyState 
+                      title={hasMaterialsSearch ? "No matching references" : "No references yet"} 
+                      description={hasMaterialsSearch ? "Try adjusting your search terms or filters." : "Course external URLs will appear here."} 
+                    />
                   )}
                   {materialSubTab === "bookmarked" && bookmarkedList.length === 0 && (
                     <EmptyState title="No bookmarks yet" description="Bookmark materials to pin them under this folder." />

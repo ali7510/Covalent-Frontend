@@ -118,3 +118,13 @@ export async function promoteToAdmin(
 ): Promise<void> {
   await api.post(`${BASE}/${spaceId}/admins/${memberId}`);
 }
+
+// ---------------------------------------------------------------------------
+// Get all members of a space (with roles)
+// ---------------------------------------------------------------------------
+export async function getSpaceMembers(
+  spaceId: string
+): Promise<MembershipResponse[]> {
+  const res = await api.get(`${BASE}/${spaceId}/members`);
+  return res.data.data;
+}

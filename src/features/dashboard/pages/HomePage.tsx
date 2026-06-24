@@ -95,7 +95,7 @@ export default function HomePage() {
           <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark">
             <div className="flex items-center justify-between pb-4 border-b border-border">
               <h3 className="text-[15px] leading-[24px] font-[510] text-foreground">My Study Spaces</h3>
-              <Link to="/spaces/search" className="text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors">
+              <Link to="/discover" className="text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors">
                 Explore all →
               </Link>
             </div>
@@ -132,7 +132,7 @@ export default function HomePage() {
               Collaborate on courses, find solutions from peers, and download lecture notes uploaded by instructors.
             </p>
             <Link 
-              to="/spaces/search" 
+              to="/discover" 
               className="inline-flex items-center space-x-2 rounded-full bg-white text-[#0E1A3E] px-4 py-2 text-[12px] font-[510] hover:bg-white/90 active:scale-98 transition-all relative z-10"
             >
               <span>Explore Spaces</span>

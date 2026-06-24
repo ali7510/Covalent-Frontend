@@ -44,7 +44,12 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status !== 401 || original._retry) {
+    // Skip token refresh if: non-401, already retried, or is an auth endpoint (login/register)
+    if (
+      error.response?.status !== 401 ||
+      original._retry ||
+      original.url?.includes("/api/v1/auth/")
+    ) {
       return Promise.reject(error);
     }
 

@@ -36,7 +36,7 @@ export default function AboutPage() {
             </p>
             <div className="pt-4 flex items-center space-x-4">
               <a
-                href="https://github.com"
+                href="https://github.com/ali7510/Covalent-Frontend"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center space-x-2 rounded-full border border-border px-4 py-2 text-[13px] font-[510] text-foreground hover:bg-muted active:scale-98 transition-all"

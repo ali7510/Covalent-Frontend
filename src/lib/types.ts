@@ -63,6 +63,7 @@ export interface SpaceResponse {
   memberCount: number;
   createdAt: string;
   similarityScore?: number; // only in 409 conflict body
+  role?: "MEMBER" | "ADMIN"; // present when fetched as authenticated member
 }
 
 export interface MembershipResponse {

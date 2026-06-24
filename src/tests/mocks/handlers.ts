@@ -320,7 +320,7 @@ export const handlers = [
   http.delete(`${BASE}/materials/material-1`, () => ok(null)),
 
   // ── Notifications ─────────────────────────────────────────────────────────
-  http.get(`${BASE}/notifications/all-notifications`, () =>
+  http.get(`${BASE}/notifications`, () =>
     ok({ content: [fixtures.notification], totalElements: 1, totalPages: 1, number: 0, size: 10 })
   ),
 

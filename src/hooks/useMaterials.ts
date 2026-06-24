@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getSpaceMaterials,
   getBookmarkedMaterials,
+  searchMaterials,
   uploadFile,
   shareLink,
   bookmarkMaterial,
@@ -11,11 +12,11 @@ import {
 } from "@/services/materials"
 import type { MaterialResponse, PagedResponse, ShareLinkBody, UpdateMaterialBody } from "@/lib/types"
 
-export function useSpaceMaterials(spaceId: string | undefined, page = 0, size = 20) {
+export function useSpaceMaterials(spaceId: string | undefined, page = 0, size = 20, enabled = true) {
   return useQuery<PagedResponse<MaterialResponse>, Error>({
     queryKey: ["spaceMaterials", spaceId, page, size],
     queryFn: () => getSpaceMaterials(spaceId || "", page, size),
-    enabled: !!spaceId,
+    enabled: enabled && !!spaceId,
   })
 }
 
@@ -24,6 +25,29 @@ export function useBookmarkedMaterials(spaceId: string | undefined, page = 0, si
     queryKey: ["bookmarkedMaterials", spaceId, page, size],
     queryFn: () => getBookmarkedMaterials(spaceId || "", page, size),
     enabled: !!spaceId,
+  })
+}
+
+export function useSearchMaterials(
+  spaceId: string | undefined,
+  params: {
+    query?: string
+    resourceType?: string
+    sortBy?: "linkCount" | "createdAt"
+    sortDir?: "asc" | "desc"
+  },
+  enabled = true
+) {
+  return useQuery<MaterialResponse[], Error>({
+    queryKey: ["spaceMaterialsSearch", spaceId, params],
+    queryFn: () =>
+      searchMaterials(spaceId || "", {
+        query: params.query,
+        resourceType: params.resourceType,
+        sortBy: params.sortBy,
+        sortDir: params.sortDir,
+      }),
+    enabled: enabled && !!spaceId,
   })
 }
 

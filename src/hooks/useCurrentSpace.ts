@@ -4,7 +4,9 @@ import { useSpace } from "./useSpaces"
 
 /**
  * Resolves the current space from the URL params, fetches its details,
- * and exposes whether the authenticated user is an admin/creator of that space.
+ * and exposes whether the authenticated user is an admin of that space.
+ * Uses the membership role from the backend when available, with a
+ * fallback to the createdById check for backwards compatibility.
  */
 export function useCurrentSpace() {
   const { spaceId } = useParams<{ spaceId: string }>()
@@ -12,9 +14,12 @@ export function useCurrentSpace() {
 
   const { data: space, isLoading, isError } = useSpace(spaceId)
 
-  // The user is considered an admin if they created the space.
-  // When the backend exposes membership roles, this can be refined further.
-  const isAdmin = !!(user && space && space.createdById === user.id)
+  // Prefer role-based check from membership (role field populated when fetching user's own spaces).
+  // Fall back to createdById comparison for spaces viewed by the creator before refresh.
+  const isAdmin = !!(
+    space &&
+    (space.role === "ADMIN" || (user && space.createdById === user.id))
+  )
 
   return {
     spaceId,
