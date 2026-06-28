@@ -3,12 +3,14 @@ import type {
   CourseRegistrationResponse,
   RegisterCourseBody,
   UpdateCourseBody,
+  CourseCatalogWrapper,
+  GradeMappingWrapper,
 } from "../lib/types";
 
 const BASE = "/api/v1/courses";
 
 // ---------------------------------------------------------------------------
-// Get courses currently being taken (isCurrent: true)
+// Get courses currently being taken (isCurrent: true / closed: false)
 // ---------------------------------------------------------------------------
 export async function getCurrentCourses(): Promise<CourseRegistrationResponse[]> {
   const res = await api.get(`${BASE}/current`);
@@ -19,7 +21,7 @@ export async function getCurrentCourses(): Promise<CourseRegistrationResponse[]>
 // Get all registered courses (current + past)
 // ---------------------------------------------------------------------------
 export async function getAllCourses(): Promise<CourseRegistrationResponse[]> {
-  const res = await api.get(`${BASE}/all`);
+  const res = await api.get(BASE);
   return res.data.data;
 }
 
@@ -34,7 +36,7 @@ export async function registerCourse(
 }
 
 // ---------------------------------------------------------------------------
-// Update a course registration (grade, result, isCurrent flag)
+// Update a course registration (termWork, examWork, closed flag)
 // ---------------------------------------------------------------------------
 export async function updateCourse(
   id: string,
@@ -49,4 +51,17 @@ export async function updateCourse(
 // ---------------------------------------------------------------------------
 export async function deleteCourse(id: string): Promise<void> {
   await api.delete(`${BASE}/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Reference Data Endpoints
+// ---------------------------------------------------------------------------
+export async function getCourseCatalog(): Promise<CourseCatalogWrapper> {
+  const res = await api.get("/api/v1/reference-data/courses");
+  return res.data.data;
+}
+
+export async function getGradeMapping(): Promise<GradeMappingWrapper> {
+  const res = await api.get("/api/v1/reference-data/grades");
+  return res.data.data;
 }

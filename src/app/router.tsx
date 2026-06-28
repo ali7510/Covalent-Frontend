@@ -11,6 +11,7 @@ import SpacePage from "@/features/spaces/pages/SpacePage"
 import SpaceSearchPage from "@/features/spaces/pages/SpaceSearchPage"
 import CreateSpacePage from "@/features/spaces/pages/CreateSpacePage"
 import SpaceSettingsPage from "@/features/spaces/pages/SpaceSettingsPage"
+import DepartmentPredictorPage from "@/features/predictor/pages/DepartmentPredictorPage"
 
 import ProtectedRoute from "@/features/auth/ProtectedRoute"
 import PageLayout from "@/components/shared/PageLayout"
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
           { path: "/spaces/:spaceId/settings", element: <SpaceSettingsPage /> },
           { path: "/posts/:postId", element: <PostPage /> },
           { path: "/online-courses", element: <OnlineCoursesPage /> },
+          { path: "/predictor", element: <DepartmentPredictorPage /> },
           { path: "/leaderboard", element: <LeaderboardPage /> },
           { path: "/notifications", element: <NotificationsPage /> },
           { path: "/profile", element: <ProfilePage /> },

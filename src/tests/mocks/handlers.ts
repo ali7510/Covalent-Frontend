@@ -156,15 +156,31 @@ export const fixtures = {
   },
 
   course: {
-    id: "course-1",
-    userId: "user-1",
+    id: 1,
+    code: "CS301",
+    termWork: 35.0,
+    examWork: 55.0,
+    result: 90.0,
+    grade: "A",
+    points: 4.0,
+    closed: false,
+    createdAt: "2026-06-25T12:00:00Z",
+    updatedAt: "2026-06-25T12:00:00Z",
+  },
+
+  onlineCourse: {
+    id: "online-course-1",
     courseCode: "CS301",
     courseName: "Algorithms & Data Structures",
-    semester: 1,
-    academicYear: 2,
-    grade: "A",
-    result: 95.0,
-    isCurrent: true,
+    source: "Coursera",
+    title: "Algorithms, Part I",
+    url: "https://www.coursera.org/learn/algorithms-part1",
+    description: "This course covers the essential information that every serious programmer needs to know about algorithms and data structures.",
+    rating: 4.9,
+    reviews: 12450,
+    price: 0.0,
+    score: 0.98,
+    lastUpdated: "2024-03-01T12:00:00Z",
   },
 };
 
@@ -229,6 +245,52 @@ export const handlers = [
       score: 0.95,
       methodCount: 2,
       reasons: ["COURSE_MATCH", "SOCIAL"]
+    }
+  ])),
+
+  http.get(`${BASE}/recommendations/courses`, () => ok([
+    fixtures.onlineCourse,
+    {
+      id: "online-course-2",
+      courseCode: "CS301",
+      courseName: "Algorithms & Data Structures",
+      source: "Udemy",
+      title: "Master the Coding Interview: Data Structures + Algorithms",
+      url: "https://www.udemy.com/course/master-the-coding-interview-data-structures-algorithms/",
+      description: "Ace your coding interview. Learn Big O notation, data structures, algorithms, and mockup interviews.",
+      rating: 4.7,
+      reviews: 84300,
+      price: 19.99,
+      score: 0.92,
+      lastUpdated: "2024-02-15T10:00:00Z"
+    },
+    {
+      id: "online-course-3",
+      courseCode: "CS202",
+      courseName: "Object Oriented Programming",
+      source: "Coursera",
+      title: "Object Oriented Java Programming: Data Structures and Beyond",
+      url: "https://www.coursera.org/specializations/java-object-oriented",
+      description: "Learn to write clean, reusable, object-oriented code in Java with algorithms and advanced data structure techniques.",
+      rating: 4.8,
+      reviews: 5320,
+      price: 0.0,
+      score: 0.89,
+      lastUpdated: "2024-01-20T08:00:00Z"
+    },
+    {
+      id: "online-course-4",
+      courseCode: "CS202",
+      courseName: "Object Oriented Programming",
+      source: "Udemy",
+      title: "Java Programming Masterclass covering Java 11 & Java 17",
+      url: "https://www.udemy.com/course/java-the-complete-java-developer-course/",
+      description: "Learn OOP, Java programming, clean code, design patterns, and multithreading.",
+      rating: 4.6,
+      reviews: 320100,
+      price: 14.99,
+      score: 0.84,
+      lastUpdated: "2024-03-10T09:00:00Z"
     }
   ])),
 
@@ -340,15 +402,106 @@ export const handlers = [
   // ── Courses ───────────────────────────────────────────────────────────────
   http.get(`${BASE}/courses/current`, () => ok([fixtures.course])),
 
-  http.get(`${BASE}/courses/all`, () =>
-    ok([fixtures.course, { ...fixtures.course, id: "course-2", isCurrent: false, grade: "B+", result: 85.5 }])
+  http.get(`${BASE}/courses`, () =>
+    ok([
+      fixtures.course,
+      {
+        ...fixtures.course,
+        id: 2,
+        code: "CS302",
+        termWork: 32.0,
+        examWork: 50.0,
+        result: 82.0,
+        grade: "B+",
+        points: 3.3,
+        closed: true,
+      },
+    ])
   ),
 
   http.post(`${BASE}/courses`, () => ok(fixtures.course)),
 
-  http.patch(`${BASE}/courses/course-1`, () =>
-    ok({ ...fixtures.course, grade: "A+", result: 98.0 })
+  http.patch(`${BASE}/courses/:id`, () =>
+    ok({
+      ...fixtures.course,
+      termWork: 35.0,
+      examWork: 55.0,
+      result: 90.0,
+      grade: "A+",
+      points: 4.0,
+      closed: true,
+    })
   ),
 
-  http.delete(`${BASE}/courses/course-1`, () => ok(null)),
+  http.delete(`${BASE}/courses/:id`, () => ok(null)),
+
+  // ── Reference Data ────────────────────────────────────────────────────────
+  http.get(`${BASE}/reference-data/courses`, () =>
+    ok({
+      version: "1.0",
+      updated: "2026-06-21",
+      courses: [
+        { code: "CS301", name: "Algorithms & Data Structures" },
+        { code: "CS302", name: "Software Engineering" },
+        { code: "AI311", name: "Introduction to Logic" },
+      ],
+    })
+  ),
+
+  http.get(`${BASE}/reference-data/grades`, () =>
+    ok({
+      version: "1.0",
+      updatedAt: "2026-06-21",
+      scale: [
+        { grade: "A+", min: 90, max: 100, points: 4.0 },
+        { grade: "B+", min: 80, max: 89, points: 3.3 },
+      ],
+    })
+  ),
+
+  // ── Questionnaire & Prediction ────────────────────────────────────────────
+  http.get(`${BASE}/questionnaire`, () => {
+    return HttpResponse.json({
+      metadata: {
+        title: "Test Questionnaire",
+        version: "1.0",
+        total_questions: 1,
+        departments: ["CS", "AI"],
+        instructions: "Test info",
+        time_estimate: "1 min",
+      },
+      questions: [
+        {
+          id: 1,
+          text: "What appeals to you most?",
+          type: "scenario_choice",
+          answers: [
+            { id: "a", text: "Software Systems", scores: { CS: 3, AI: 1 } },
+            { id: "b", text: "Intelligent Systems", scores: { CS: 1, AI: 3 } },
+          ],
+        },
+      ],
+    });
+  }),
+
+  http.post(`${BASE}/questionnaire/score`, () =>
+    ok({
+      raw: { CS: 3, AI: 1 },
+      normalized: { CS: 0.75, AI: 0.25 },
+    })
+  ),
+
+  http.post(`${BASE}/predictions/department`, () =>
+    ok({
+      departmentScores: [
+        { department: "Computer Science", questionnaireScore: 0.75, modelScore: 0.85, combinedScore: 0.8 },
+        { department: "Artificial Intelligence", questionnaireScore: 0.25, modelScore: 0.15, combinedScore: 0.2 },
+      ],
+      topDepartment: "Computer Science",
+      modelAvailable: true,
+      modelVersion: "v1.0",
+      warning: null,
+      weights: { questionnaire: 0.5, model: 0.5 },
+    })
+  ),
 ];

@@ -5,11 +5,15 @@ import {
   registerCourse,
   updateCourse,
   deleteCourse,
+  getCourseCatalog,
+  getGradeMapping,
 } from "@/services/courses"
 import type {
   CourseRegistrationResponse,
   RegisterCourseBody,
   UpdateCourseBody,
+  CourseCatalogWrapper,
+  GradeMappingWrapper,
 } from "@/lib/types"
 
 export function useCurrentCourses() {
@@ -56,5 +60,21 @@ export function useDeleteCourseRegistration() {
       queryClient.invalidateQueries({ queryKey: ["currentCourses"] })
       queryClient.invalidateQueries({ queryKey: ["allCourses"] })
     },
+  })
+}
+
+export function useCourseCatalog() {
+  return useQuery<CourseCatalogWrapper, Error>({
+    queryKey: ["courseCatalog"],
+    queryFn: getCourseCatalog,
+    staleTime: 24 * 60 * 60 * 1000, // catalog doesn't change often
+  })
+}
+
+export function useGradeMapping() {
+  return useQuery<GradeMappingWrapper, Error>({
+    queryKey: ["gradeMapping"],
+    queryFn: getGradeMapping,
+    staleTime: 24 * 60 * 60 * 1000,
   })
 }

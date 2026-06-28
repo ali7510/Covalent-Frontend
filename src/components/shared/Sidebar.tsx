@@ -9,14 +9,17 @@ import {
   Compass, 
   GraduationCap, 
   Trophy, 
-  Bell, 
   User, 
+  Bell, 
   Info, 
   LogOut,
   X,
   Sun,
   Moon,
+  Sparkles,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+
 
 interface SidebarProps {
   isOpen?: boolean
@@ -47,6 +50,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { to: "/", label: "Home", icon: Home },
     { to: "/discover", label: "Discover", icon: Compass },
     { to: "/online-courses", label: "Online Courses", icon: GraduationCap },
+    { to: "/predictor", label: "Department Predictor", icon: Sparkles },
     { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
     { to: "/profile", label: "Profile", icon: User },
     { to: "/notifications", label: "Notifications", icon: Bell, useNotificationBell: true },

@@ -10,7 +10,7 @@ export async function getNotifications(
   page = 0,
   size = 10
 ): Promise<PagedResponse<NotificationResponse>> {
-  const res = await api.get(`${BASE}`, {
+  const res = await api.get(`${BASE}/all-notifications`, {
     params: { page, size },
   });
   return res.data.data;

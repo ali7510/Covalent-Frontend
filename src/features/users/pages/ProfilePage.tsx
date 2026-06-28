@@ -1,9 +1,15 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useAuth } from "@/features/auth/AuthContext"
-import { useAllCourses, useRegisterCourse, useDeleteCourseRegistration, useUpdateCourseRegistration } from "@/hooks/useCourses"
+import {
+  useAllCourses,
+  useRegisterCourse,
+  useDeleteCourseRegistration,
+  useUpdateCourseRegistration,
+  useCourseCatalog,
+} from "@/hooks/useCourses"
 import { useMyGamification } from "@/hooks/useGamification"
 import { useUpdateProfile, useChangePassword, useToggleEmailPrefs, useToggleInAppPrefs } from "@/hooks/useUsers"
 import UserAvatar from "@/components/shared/UserAvatar"
@@ -12,6 +18,8 @@ import EmptyState from "@/components/shared/EmptyState"
 import { GraduationCap, Mail, Settings as SettingsIcon, BookOpen, Award, Flame, Plus, X, Lock, User, Bell, Trash2, TrendingUp, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 import axios from "axios"
+import { isAxiosError } from "axios"
+import type { CourseRegistrationResponse } from "@/lib/types"
 
 // ---------------------------------------------------------------------------
 // Zod Schemas
@@ -34,18 +42,41 @@ const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 })
 
+// New API shape: select from catalog + optional grades
 const registerCourseSchema = z.object({
-  courseName: z.string().min(2, "Course name is required"),
-  courseCode: z.string().min(2, "Course code is required"),
-  academicYear: z.coerce.number().int().min(1).max(8),
-  semester: z.coerce.number().int().min(1).max(2),
+  courseCode: z.string().min(1, "Please select a course"),
+  hasGrades: z.boolean().default(false),
+  termWork: z.union([z.coerce.number().min(0).max(40), z.literal("")]).optional(),
+  examWork: z.union([z.coerce.number().min(0).max(60), z.literal("")]).optional(),
+}).refine((data) => {
+  if (data.hasGrades) {
+    return (
+      data.termWork !== "" && data.termWork !== undefined &&
+      data.examWork !== "" && data.examWork !== undefined
+    )
+  }
+  return true
+}, {
+  message: "Both term work (0-40) and exam work (0-60) are required when grades are included.",
+  path: ["examWork"],
 })
 
-const editGradeSchema = z.object({
-  grade: z.string().optional(),
+const editCourseSchema = z.object({
+  hasGrades: z.boolean().default(false),
+  termWork: z.union([z.coerce.number().min(0).max(40), z.literal("")]).optional(),
+  examWork: z.union([z.coerce.number().min(0).max(60), z.literal("")]).optional(),
+  closed: z.boolean(),
+}).refine((data) => {
+  const hasTerm = data.termWork !== "" && data.termWork !== undefined
+  const hasExam = data.examWork !== "" && data.examWork !== undefined
+  if (hasTerm || hasExam) return hasTerm && hasExam
+  if (data.closed) return hasTerm && hasExam
+  return true
+}, {
+  message: "Both term work (0-40) and exam work (0-60) must be provided together, or both left blank.",
+  path: ["examWork"],
 })
 
-type UpdateProfileValues = z.infer<typeof updateProfileSchema>
 type UpdateProfileRawValues = {
   fullName: string
   department?: string
@@ -55,13 +86,7 @@ type UpdateProfileRawValues = {
 }
 type ChangePasswordValues = z.infer<typeof changePasswordSchema>
 type RegisterCourseValues = z.infer<typeof registerCourseSchema>
-type RegisterCourseRawValues = {
-  courseName: string
-  courseCode: string
-  academicYear: number
-  semester: number
-}
-type EditGradeValues = z.infer<typeof editGradeSchema>
+type EditCourseValues = z.infer<typeof editCourseSchema>
 
 // ---------------------------------------------------------------------------
 // XP Level Helpers (Level = floor(1 + sqrt(xp / 100)))
@@ -84,6 +109,7 @@ function computeXpProgress(xp: number) {
 export default function ProfilePage() {
   const { user, logout } = useAuth()
   const { data: courses, isLoading: coursesLoading } = useAllCourses()
+  const { data: catalogData, isLoading: catalogLoading } = useCourseCatalog()
   const { data: gamification, isLoading: gamLoading } = useMyGamification()
 
   // Tab State
@@ -91,7 +117,7 @@ export default function ProfilePage() {
 
   // Modal States
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<{ id: string; courseName: string; grade?: string } | null>(null)
+  const [editingCourse, setEditingCourse] = useState<CourseRegistrationResponse | null>(null)
 
   // Notification toggles local states
   const [emailNotifs, setEmailNotifs] = useState(() => {
@@ -137,15 +163,27 @@ export default function ProfilePage() {
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   })
 
-  const courseForm = useForm<RegisterCourseRawValues>({
-    resolver: zodResolver(registerCourseSchema) as Resolver<RegisterCourseRawValues>,
-    defaultValues: { courseName: "", courseCode: "", academicYear: 1, semester: 1 },
+  const courseForm = useForm<RegisterCourseValues>({
+    resolver: zodResolver(registerCourseSchema),
+    defaultValues: { courseCode: "", hasGrades: false, termWork: "", examWork: "" },
   })
 
-  const gradeForm = useForm<EditGradeValues>({
-    resolver: zodResolver(editGradeSchema),
-    defaultValues: { grade: "" },
+  const editForm = useForm<EditCourseValues>({
+    resolver: zodResolver(editCourseSchema),
+    defaultValues: { hasGrades: false, termWork: "", examWork: "", closed: false },
   })
+
+  // ---------------------------------------------------------------------------
+  // Catalog lookup map
+  // ---------------------------------------------------------------------------
+
+  const catalogMap = useMemo(() => {
+    if (!catalogData?.courses) return {}
+    return catalogData.courses.reduce((acc, c) => {
+      acc[c.code] = c.name
+      return acc
+    }, {} as Record<string, string>)
+  }, [catalogData])
 
   // ---------------------------------------------------------------------------
   // Submit Handlers
@@ -192,13 +230,13 @@ export default function ProfilePage() {
   }
 
   const handleAddCourseSubmit = (values: RegisterCourseValues) => {
+    const termVal = values.hasGrades && values.termWork !== "" && values.termWork !== undefined
+      ? Number(values.termWork) : undefined
+    const examVal = values.hasGrades && values.examWork !== "" && values.examWork !== undefined
+      ? Number(values.examWork) : undefined
+
     registerCourseMutation.mutate(
-      {
-        courseCode: values.courseCode,
-        courseName: values.courseName,
-        academicYear: Number(values.academicYear),
-        semester: Number(values.semester),
-      },
+      { code: values.courseCode, termWork: termVal, examWork: examVal },
       {
         onSuccess: () => {
           toast.success("Course registered successfully!")
@@ -206,10 +244,9 @@ export default function ProfilePage() {
           setIsAddCourseOpen(false)
         },
         onError: (err) => {
-          const message = axios.isAxiosError(err) && err.response?.data?.message
-            ? err.response.data.message
-            : "Failed to register course"
-          toast.error(message)
+          toast.error(
+            isAxiosError(err) ? err.response?.data?.message ?? "Failed to register course" : "Failed to register course"
+          )
         },
       }
     )
@@ -222,28 +259,40 @@ export default function ProfilePage() {
     })
   }
 
-  const handleOpenEditGrade = (course: { id: string; courseName: string; grade?: string }) => {
+  const handleOpenEditCourse = (course: CourseRegistrationResponse) => {
     setEditingCourse(course)
-    gradeForm.reset({ grade: course.grade || "" })
+    const hasExistingGrades = course.termWork !== null && course.examWork !== null
+    editForm.reset({
+      hasGrades: hasExistingGrades,
+      termWork: course.termWork ?? "",
+      examWork: course.examWork ?? "",
+      closed: course.closed,
+    })
   }
 
-  const handleEditGradeSubmit = (values: EditGradeValues) => {
+  const handleEditCourseSubmit = (values: EditCourseValues) => {
     if (!editingCourse) return
+    const hasVals = values.hasGrades || values.closed
+    const termVal = hasVals && values.termWork !== "" && values.termWork !== undefined
+      ? Number(values.termWork) : undefined
+    const examVal = hasVals && values.examWork !== "" && values.examWork !== undefined
+      ? Number(values.examWork) : undefined
+
     updateCourseMutation.mutate(
       {
-        id: editingCourse.id,
-        body: {
-          grade: values.grade?.trim() || undefined,
-          result: values.grade?.trim() ? 1.0 : 0.0,
-          isCurrent: !values.grade?.trim(),
-        },
+        id: editingCourse.id.toString(),
+        body: { termWork: termVal, examWork: examVal, closed: values.closed },
       },
       {
         onSuccess: () => {
-          toast.success("Course grade updated!")
+          toast.success("Course updated!")
           setEditingCourse(null)
         },
-        onError: () => toast.error("Failed to update course grade"),
+        onError: (err) => {
+          toast.error(
+            isAxiosError(err) ? err.response?.data?.message ?? "Failed to update course" : "Failed to update course"
+          )
+        },
       }
     )
   }
@@ -280,9 +329,15 @@ export default function ProfilePage() {
   // Derived data
   // ---------------------------------------------------------------------------
 
-  const activeCourses = courses?.filter((c) => c.isCurrent) ?? []
-  const pastCourses = courses?.filter((c) => !c.isCurrent) ?? []
+  const activeCourses = courses?.filter((c) => !c.closed) ?? []
+  const pastCourses = courses?.filter((c) => c.closed) ?? []
   const xpInfo = gamification ? computeXpProgress(gamification.xpPoints) : null
+
+  const watchHasGradesRegister = courseForm.watch("hasGrades")
+  const watchHasGradesEdit = editForm.watch("hasGrades")
+  const watchClosed = editForm.watch("closed")
+
+  const isLoading = coursesLoading || catalogLoading
 
   // ---------------------------------------------------------------------------
   // JSX
@@ -449,30 +504,34 @@ export default function ProfilePage() {
                   </button>
                 </div>
 
-                {coursesLoading ? (
-                  <LoadingState message="Loading modules…" />
+                {isLoading ? (
+                  <LoadingState message="Loading modules..." />
                 ) : activeCourses.length === 0 ? (
-                  <EmptyState title="No active courses" description="You have no currently enrolled modules." />
+                  <EmptyState title="No active courses" description="You have no currently enrolled modules. Register a module to get started." />
                 ) : (
                   <div className="divide-y divide-border text-[12px]">
                     {activeCourses.map((course) => (
                       <div key={course.id} className="flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors">
                         <div className="space-y-1">
-                          <p className="font-[510] text-foreground">{course.courseName}</p>
+                          <p className="font-[510] text-foreground">{catalogMap[course.code] || course.code}</p>
                           <p className="text-[10px] text-muted-foreground font-medium">
-                            Code: <span className="font-[510] uppercase">{course.courseCode}</span> • Year {course.academicYear} • Sem {course.semester}
+                            Code: <span className="font-[510] uppercase">{course.code}</span>
+                            {course.termWork !== null && course.examWork !== null && (
+                              <> &bull; TW: {course.termWork} / EW: {course.examWork}</>
+                            )}
+                            {course.grade && <> &bull; Grade: <span className="font-[510]">{course.grade}</span></>}
                           </p>
                         </div>
                         <div className="flex items-center space-x-3 shrink-0">
                           <button
-                            onClick={() => handleOpenEditGrade(course)}
-                            className="inline-flex items-center space-x-1 p-1 px-2.5 rounded-md border border-border text-[10px] font-[510] text-muted-foreground hover:text-foreground hover:bg-secondary"
+                            onClick={() => handleOpenEditCourse(course)}
+                            className="inline-flex items-center p-1 px-2.5 rounded-md border border-border text-[10px] font-[510] text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
                           >
-                            <span>Set Grade</span>
+                            Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteCourse(course.id)}
-                            className="p-1.5 rounded-md border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            onClick={() => handleDeleteCourse(course.id.toString())}
+                            className="p-1.5 rounded-md border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -484,7 +543,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Past Courses */}
-              {!coursesLoading && pastCourses.length > 0 && (
+              {!isLoading && pastCourses.length > 0 && (
                 <div className="rounded-md border border-border bg-card overflow-hidden shadow-card-light dark:shadow-card-dark">
                   <div className="p-5 border-b border-border">
                     <h3 className="text-[12px] font-[510] uppercase tracking-wider text-foreground flex items-center space-x-2">
@@ -496,18 +555,24 @@ export default function ProfilePage() {
                     {pastCourses.map((course) => (
                       <div key={course.id} className="flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors">
                         <div className="space-y-1">
-                          <p className="font-[510] text-foreground">{course.courseName}</p>
+                          <p className="font-[510] text-foreground">{catalogMap[course.code] || course.code}</p>
                           <p className="text-[10px] text-muted-foreground font-medium">
-                            Code: <span className="font-[510] uppercase">{course.courseCode}</span> • Year {course.academicYear} • Sem {course.semester}
+                            Code: <span className="font-[510] uppercase">{course.code}</span>
+                            {course.result !== null && <> &bull; Result: {course.result}</>}
                           </p>
                         </div>
                         <div className="flex items-center space-x-3 shrink-0">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-secondary border border-border text-[10px] font-[510] text-foreground">
-                            {course.grade || "—"}
-                          </span>
+                          {course.grade && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md bg-secondary border border-border text-[10px] font-[510] text-foreground">
+                              {course.grade}
+                            </span>
+                          )}
+                          {course.points !== null && (
+                            <span className="text-[10px] text-muted-foreground font-[510]">{course.points} pts</span>
+                          )}
                           <button
-                            onClick={() => handleDeleteCourse(course.id)}
-                            className="p-1.5 rounded-md border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            onClick={() => handleDeleteCourse(course.id.toString())}
+                            className="p-1.5 rounded-md border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -756,12 +821,12 @@ export default function ProfilePage() {
       {/* REGISTER COURSE MODAL */}
       {isAddCourseOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-md border border-border bg-card shadow-lg p-6 space-y-5">
+          <div className="relative w-full max-w-md rounded-md border border-border bg-card shadow-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-[14px] font-[510] text-foreground">Register Module</h3>
+              <h3 className="text-[14px] font-[510] text-foreground">Register a Module</h3>
               <button
                 onClick={() => { setIsAddCourseOpen(false); courseForm.reset() }}
-                className="p-1 text-muted-foreground hover:text-foreground"
+                className="p-1 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -769,72 +834,58 @@ export default function ProfilePage() {
 
             <form onSubmit={courseForm.handleSubmit(handleAddCourseSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Course Name *</label>
-                <input
-                  type="text"
-                  {...courseForm.register("courseName")}
-                  placeholder="e.g. Distributed Operating Systems"
+                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Select Course *</label>
+                <select
+                  {...courseForm.register("courseCode")}
                   className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                />
-                {courseForm.formState.errors.courseName && (
-                  <p className="text-[10px] text-red-500">{courseForm.formState.errors.courseName.message}</p>
+                >
+                  <option value="">Select a course from catalog...</option>
+                  {catalogData?.courses?.map((c) => (
+                    <option key={c.code} value={c.code}>{c.code} - {c.name}</option>
+                  ))}
+                </select>
+                {courseForm.formState.errors.courseCode && (
+                  <p className="text-[10px] text-destructive">{courseForm.formState.errors.courseCode.message}</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Course Code *</label>
-                  <input
-                    type="text"
-                    {...courseForm.register("courseCode")}
-                    placeholder="e.g. CS-420"
-                    className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                  />
-                  {courseForm.formState.errors.courseCode && (
-                    <p className="text-[10px] text-red-500">{courseForm.formState.errors.courseCode.message}</p>
-                  )}
-                </div>
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="hasGrades"
+                  {...courseForm.register("hasGrades")}
+                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="hasGrades" className="text-[11px] text-foreground font-medium cursor-pointer">
+                  Include grades (Term Work and Exam Work)
+                </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Academic Year</label>
-                  <select
-                    {...courseForm.register("academicYear")}
-                    className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                  >
-                    <option value="1">Year 1</option>
-                    <option value="2">Year 2</option>
-                    <option value="3">Year 3</option>
-                    <option value="4">Year 4</option>
-                  </select>
+              {watchHasGradesRegister && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Term Work (0-40) *</label>
+                    <input type="number" step="0.1" min="0" max="40" {...courseForm.register("termWork")} placeholder="e.g. 32.5"
+                      className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Exam Work (0-60) *</label>
+                    <input type="number" step="0.1" min="0" max="60" {...courseForm.register("examWork")} placeholder="e.g. 48.0"
+                      className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground" />
+                    {courseForm.formState.errors.examWork && (
+                      <p className="text-[10px] text-destructive">{courseForm.formState.errors.examWork.message}</p>
+                    )}
+                  </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Semester</label>
-                  <select
-                    {...courseForm.register("semester")}
-                    className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                  >
-                    <option value="1">Semester 1</option>
-                    <option value="2">Semester 2</option>
-                  </select>
-                </div>
-              </div>
+              )}
 
               <div className="flex justify-end space-x-2 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => { setIsAddCourseOpen(false); courseForm.reset() }}
-                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors"
-                >
+                <button type="button" onClick={() => { setIsAddCourseOpen(false); courseForm.reset() }}
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors cursor-pointer">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={registerCourseMutation.isPending}
-                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                >
+                <button type="submit" disabled={registerCourseMutation.isPending}
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-btn-primary">
                   {registerCourseMutation.isPending ? "Registering..." : "Register Course"}
                 </button>
               </div>
@@ -843,51 +894,66 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* EDIT COURSE GRADE MODAL */}
+      {/* EDIT COURSE MODAL */}
       {editingCourse && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-md rounded-md border border-border bg-card shadow-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-[14px] font-[510] text-foreground">Update Course Grade</h3>
-              <button onClick={() => setEditingCourse(null)} className="p-1 text-muted-foreground hover:text-foreground">
+              <h3 className="text-[14px] font-[510] text-foreground">Update Course Details</h3>
+              <button onClick={() => setEditingCourse(null)} className="p-1 text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={gradeForm.handleSubmit(handleEditGradeSubmit)} className="space-y-4 text-[12px]">
+            <form onSubmit={editForm.handleSubmit(handleEditCourseSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1">
-                <p className="font-medium text-foreground">
-                  Update your grade for <span className="font-[510]">{editingCourse.courseName}</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Entering a grade will automatically mark this module as completed. Leave it empty to keep it as currently enrolled.
-                </p>
+                <p className="font-medium text-foreground text-[13px]">{catalogMap[editingCourse.code] || editingCourse.code}</p>
+                <p className="text-[11px] text-muted-foreground">Update grades and completion status for this module.</p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Letter Grade</label>
-                <input
-                  type="text"
-                  {...gradeForm.register("grade")}
-                  placeholder="e.g. A, B+, C"
-                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                />
+              <div className="flex items-center space-x-2 pt-1">
+                <input type="checkbox" id="hasGradesEdit" {...editForm.register("hasGrades")}
+                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer" />
+                <label htmlFor="hasGradesEdit" className="text-[11px] text-foreground font-medium cursor-pointer">
+                  Has grades (Term Work and Exam Work)
+                </label>
+              </div>
+
+              {(watchHasGradesEdit || watchClosed) && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Term Work (0-40)</label>
+                    <input type="number" step="0.1" min="0" max="40" {...editForm.register("termWork")} placeholder="e.g. 35.0"
+                      className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Exam Work (0-60)</label>
+                    <input type="number" step="0.1" min="0" max="60" {...editForm.register("examWork")} placeholder="e.g. 52.0"
+                      className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground" />
+                  </div>
+                </div>
+              )}
+
+              {editForm.formState.errors.examWork && (
+                <p className="text-[10px] text-destructive">{editForm.formState.errors.examWork.message}</p>
+              )}
+
+              <div className="flex items-center space-x-2 border-t border-border/50 pt-3">
+                <input type="checkbox" id="closed" {...editForm.register("closed")}
+                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer" />
+                <label htmlFor="closed" className="text-[11px] text-foreground font-medium cursor-pointer">
+                  Mark course as finished / closed
+                </label>
               </div>
 
               <div className="flex justify-end space-x-2 pt-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => setEditingCourse(null)}
-                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors"
-                >
+                <button type="button" onClick={() => setEditingCourse(null)}
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full border border-border hover:bg-secondary transition-colors cursor-pointer">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={updateCourseMutation.isPending}
-                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                >
-                  {updateCourseMutation.isPending ? "Updating..." : "Update Grade"}
+                <button type="submit" disabled={updateCourseMutation.isPending}
+                  className="px-3.5 py-2 text-[12px] font-[510] rounded-full bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-btn-primary">
+                  {updateCourseMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

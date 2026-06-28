@@ -222,15 +222,55 @@ export interface SpaceLeaderboardEntry {
 // ---------------------------------------------------------------------------
 
 export interface CourseRegistrationResponse {
+  id: string; // long id, can be string/number
+  code: string;
+  termWork: number | null;
+  examWork: number | null;
+  result: number | null;
+  grade: string | null;
+  points: number | null;
+  closed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseCatalogCourse {
+  code: string;
+  name: string;
+}
+
+export interface CourseCatalogWrapper {
+  version: string;
+  updated: string;
+  courses: CourseCatalogCourse[];
+}
+
+export interface GradeRangeData {
+  grade: string;
+  min: number;
+  max: number;
+  points: number;
+}
+
+export interface GradeMappingWrapper {
+  version: string;
+  updatedAt: string;
+  scale: GradeRangeData[];
+}
+
+export interface OnlineCourseResponse {
   id: string;
-  userId: string;
   courseCode: string;
   courseName: string;
-  semester: number;
-  academicYear: number;
-  grade?: string;
-  result?: number;
-  isCurrent: boolean;
+  source: string;
+  title: string;
+  url: string;
+  description: string;
+  rating: number | null;
+  reviews: number | null;
+  price: number | null;
+  score: number | null;
+  lastUpdated: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -312,16 +352,80 @@ export interface ChangePasswordBody {
 }
 
 export interface RegisterCourseBody {
-  courseCode: string;
-  courseName: string;
-  semester: number;
-  academicYear: number;
+  code: string;
+  termWork?: number;
+  examWork?: number;
 }
 
 export interface UpdateCourseBody {
-  grade?: string;
-  result?: number;
-  isCurrent?: boolean;
+  termWork?: number;
+  examWork?: number;
+  closed?: boolean;
+}
+
+export interface QuestionnaireAnswerChoice {
+  id: string;
+  text: string;
+  scores: Record<string, number>;
+}
+
+export interface QuestionnaireQuestion {
+  id: number;
+  text: string;
+  type: "scenario_choice" | "likert_5";
+  scale?: { value: number; label: string }[];
+  answers: QuestionnaireAnswerChoice[];
+  explanation?: string;
+}
+
+export interface QuestionnaireMetadata {
+  title: string;
+  version: string;
+  total_questions: number;
+  departments: string[];
+  instructions: string;
+  time_estimate: string;
+}
+
+export interface QuestionnaireResponse {
+  metadata: QuestionnaireMetadata;
+  questions: QuestionnaireQuestion[];
+}
+
+export interface QuestionnaireAnswersRequest {
+  answers: Record<number, string>;
+}
+
+export interface QuestionnaireScoreResponse {
+  raw: Record<string, number>;
+  normalized: Record<string, number>;
+}
+
+export interface DepartmentScore {
+  department: string;
+  questionnaireScore: number;
+  modelScore: number | null;
+  combinedScore: number;
+}
+
+export interface PredictionWeights {
+  questionnaire: number;
+  model: number;
+}
+
+export interface PredictionResponse {
+  departmentScores: DepartmentScore[];
+  topDepartment: string;
+  modelAvailable: boolean;
+  modelVersion: string | null;
+  warning: string | null;
+  weights: PredictionWeights;
+}
+
+export interface CourseValidationErrorDetails {
+  error: "INSUFFICIENT_COURSE_DATA";
+  missingCourses: string[];
+  incompleteCourses: string[];
 }
 
 export interface SearchSpacesParams {

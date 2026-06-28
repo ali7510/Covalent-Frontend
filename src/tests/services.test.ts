@@ -98,7 +98,7 @@ import {
   deleteCourse,
 } from "../services/courses";
 
-import { getSpaceRecommendations } from "../services/recommendations";
+import { getSpaceRecommendations, getOnlineCourseRecommendations } from "../services/recommendations";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. AUTH
@@ -788,16 +788,16 @@ describe("gamification service", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("courses service", () => {
   describe("getCurrentCourses()", () => {
-    it("returns only current courses (isCurrent: true)", async () => {
+    it("returns only current courses (closed: false)", async () => {
       const result = await getCurrentCourses();
       expect(result).toHaveLength(1);
-      expect(result[0].isCurrent).toBe(true);
+      expect(result[0].closed).toBe(false);
     });
 
     it("includes the correct course fields", async () => {
       const [course] = await getCurrentCourses();
-      expect(course.courseCode).toBe("CS301");
-      expect(course.courseName).toBe("Algorithms & Data Structures");
+      expect(course.code).toBe("CS301");
+      expect(course.termWork).toBe(35.0);
     });
   });
 
@@ -807,9 +807,9 @@ describe("courses service", () => {
       expect(result).toHaveLength(2);
     });
 
-    it("includes a past course with isCurrent: false", async () => {
+    it("includes a past course with closed: true", async () => {
       const result = await getAllCourses();
-      const pastCourse = result.find((c) => !c.isCurrent);
+      const pastCourse = result.find((c) => c.closed);
       expect(pastCourse).toBeDefined();
       expect(pastCourse?.grade).toBe("B+");
     });
@@ -818,31 +818,30 @@ describe("courses service", () => {
   describe("registerCourse()", () => {
     it("returns the newly registered CourseRegistrationResponse", async () => {
       const result = await registerCourse({
-        courseCode: "CS301",
-        courseName: "Algorithms & Data Structures",
-        semester: 1,
-        academicYear: 2,
+        code: "CS301",
+        termWork: 35.0,
+        examWork: 55.0,
       });
-      expect(result.id).toBe("course-1");
-      expect(result.isCurrent).toBe(true);
+      expect(result.id).toBe(1);
+      expect(result.closed).toBe(false);
     });
   });
 
   describe("updateCourse()", () => {
     it("returns the course with updated grade and result", async () => {
-      const result = await updateCourse("course-1", { grade: "A+", result: 98.0 });
+      const result = await updateCourse("1", { termWork: 35.0, examWork: 55.0, closed: true });
       expect(result.grade).toBe("A+");
-      expect(result.result).toBe(98.0);
+      expect(result.result).toBe(90.0);
     });
 
     it("accepts partial updates", async () => {
-      await expect(updateCourse("course-1", { isCurrent: false })).resolves.toBeDefined();
+      await expect(updateCourse("1", { closed: true })).resolves.toBeDefined();
     });
   });
 
   describe("deleteCourse()", () => {
     it("resolves without throwing", async () => {
-      await expect(deleteCourse("course-1")).resolves.toBeUndefined();
+      await expect(deleteCourse("1")).resolves.toBeUndefined();
     });
   });
 });
@@ -983,6 +982,19 @@ describe("recommendations service", () => {
       expect(result[0].methodCount).toBe(2);
       expect(result[0].reasons).toContain("COURSE_MATCH");
       expect(result[0].space.id).toBe("space-1");
+    });
+  });
+
+  describe("getOnlineCourseRecommendations()", () => {
+    it("returns online course recommendations", async () => {
+      const result = await getOnlineCourseRecommendations();
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(4);
+      expect(result[0].title).toBe("Algorithms, Part I");
+      expect(result[0].source).toBe("Coursera");
+      expect(result[0].price).toBe(0.0);
+      expect(result[1].source).toBe("Udemy");
+      expect(result[1].price).toBe(19.99);
     });
   });
 });
