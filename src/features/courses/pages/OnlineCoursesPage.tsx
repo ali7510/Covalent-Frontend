@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import { toast } from "sonner"
 import { useForm } from "react-hook-form"
@@ -97,6 +98,9 @@ function computeGpa(courses: CourseRegistrationResponse[]): string {
 // ---------------------------------------------------------------------------
 
 export default function OnlineCoursesPage() {
+  // Query Client for cache invalidation
+  const queryClient = useQueryClient()
+
   // Main Navigation Tab
   const [pageTab, setPageTab] = useState<"academic" | "online">("academic")
 
@@ -196,6 +200,8 @@ export default function OnlineCoursesPage() {
           toast.success("Course registered successfully")
           setIsAddOpen(false)
           courseForm.reset()
+          // FIX #7: Invalidate recommendations cache so new courses appear immediately
+          queryClient.invalidateQueries({ queryKey: ["onlineCourseRecommendations"] })
         },
         onError: (err) => {
           toast.error(
@@ -396,7 +402,7 @@ export default function OnlineCoursesPage() {
           <div className="rounded-md border border-border bg-card p-5 shadow-card-light dark:shadow-card-dark space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               {/* Text Search */}
-              <div className="md:col-span-4 relative">
+              <div className="md:col-span-5 relative">
                 <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
@@ -412,7 +418,7 @@ export default function OnlineCoursesPage() {
                 <select
                   value={selectedCourseCode}
                   onChange={(e) => setSelectedCourseCode(e.target.value)}
-                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground text-[13px]"
+                  className="w-full rounded-md border border-border py-2.5 px-3 pr-8 focus:outline-none bg-background text-foreground text-[13px]"
                 >
                   <option value="all">All Academic Courses</option>
                   {uniqueRegisteredCourses.map((c) => (
@@ -424,25 +430,31 @@ export default function OnlineCoursesPage() {
               </div>
 
               {/* Filter: Platform */}
-              <div className="md:col-span-2.5">
+              <div className="md:col-span-2">
                 <select
                   value={selectedPlatform}
                   onChange={(e) => setSelectedPlatform(e.target.value)}
-                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground text-[13px]"
+                  className="w-full rounded-md border border-border py-2.5 px-3 pr-8 focus:outline-none bg-background text-foreground text-[13px]"
                 >
                   <option value="all">All Platforms</option>
                   <option value="coursera">Coursera</option>
                   <option value="udemy">Udemy</option>
                   <option value="edx">edX</option>
+                  <option value="geeksforgeeks">GeeksForGeeks</option>
+                  <option value="mit ocw">MIT OCW</option>
+                  <option value="freecodecamp">FreeCodeCamp</option>
+                  <option value="w3schools">W3Schools</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="khan academy">Khan Academy</option>
                 </select>
               </div>
 
               {/* Sort By */}
-              <div className="md:col-span-2.5">
+              <div className="md:col-span-2">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground text-[13px]"
+                  className="w-full rounded-md border border-border py-2.5 px-3 pr-8 focus:outline-none bg-background text-foreground text-[13px]"
                 >
                   <option value="score">Highest Match Score</option>
                   <option value="rating">Highest Rated</option>
