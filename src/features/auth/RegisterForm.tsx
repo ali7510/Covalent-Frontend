@@ -1,3 +1,5 @@
+// src/features/auth/RegisterForm.tsx
+
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -87,7 +89,6 @@ export default function RegisterForm() {
           Enter your details below to create your account
         </p>
       </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -235,7 +236,8 @@ export default function RegisterForm() {
                   <FormItem>
                     <FormLabel className="text-[13px] font-[510] text-foreground">Sem (Opt)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} max={8} placeholder="1" {...field} />
+                      {/* FIX #5: Changed max from 8 to 2 */}
+                      <Input type="number" min={1} max={2} placeholder="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -249,7 +251,6 @@ export default function RegisterForm() {
           </Button>
         </form>
       </Form>
-
       <p className="px-8 text-center text-[13px] text-muted-foreground font-normal">
         Already have an account?{" "}
         <Link to="/login" className="font-[510] text-primary hover:underline">

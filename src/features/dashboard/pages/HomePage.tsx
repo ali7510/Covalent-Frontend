@@ -1,48 +1,63 @@
+// src/features/dashboard/pages/HomePage.tsx
+
 import { useAuth } from "@/features/auth/AuthContext"
 import { useUserSpaces } from "@/hooks/useSpaces"
 import { useMyGamification } from "@/hooks/useGamification"
+import { useAllCourses } from "@/hooks/useCourses"
 import SpaceCard from "@/components/shared/SpaceCard"
 import LoadingState from "@/components/shared/LoadingState"
 import EmptyState from "@/components/shared/EmptyState"
-import { 
-  GraduationCap, 
-  Flame, 
-  Award, 
+import {
+  GraduationCap,
+  Flame,
+  Award,
   ArrowRight,
   TrendingUp,
-  FolderOpen
+  FolderOpen,
+  Plus
 } from "lucide-react"
 import { Link } from "react-router-dom"
+import type { CourseRegistrationResponse } from "@/lib/types"
+
+function computeGpa(courses: CourseRegistrationResponse[]): string {
+  const graded = courses.filter((c) => c.grade && c.points !== null)
+  if (graded.length === 0) return "N/A"
+  const avg = graded.reduce((sum, c) => sum + (c.points ?? 0), 0) / graded.length
+  return avg.toFixed(2)
+}
 
 export default function HomePage() {
   const { user } = useAuth()
   const { data: spaces, isLoading: spacesLoading } = useUserSpaces()
   const { data: gamification, isLoading: gamLoading } = useMyGamification()
+  const { data: allCourses } = useAllCourses()
+
+  const gpa = allCourses ? computeGpa(allCourses) : (user?.gpa != null ? user.gpa.toFixed(2) : "N/A")
 
   const quickStats = [
-    { 
-      label: "Active Semester", 
-      value: user?.currentSemester ? `Semester ${user.currentSemester}` : "N/A", 
-      sub: user?.academicYear ? `Year ${user.academicYear}` : "N/A", 
-      icon: GraduationCap 
+    {
+      label: "Active Semester",
+      value: user?.currentSemester ? `Semester ${user.currentSemester}` : "N/A",
+      sub: user?.academicYear ? `Year ${user.academicYear}` : "N/A",
+      icon: GraduationCap
     },
-    { 
-      label: "Cumulative GPA", 
-      value: user?.gpa != null ? user.gpa.toFixed(2) : "N/A", 
-      sub: user?.department || "N/A", 
-      icon: TrendingUp 
+    {
+      label: "Cumulative GPA",
+      value: gpa,
+      sub: user?.department || "N/A",
+      icon: TrendingUp
     },
-    { 
-      label: "XP Points", 
-      value: gamification ? `${gamification.xpPoints.toLocaleString()} XP` : "N/A", 
-      sub: gamification ? `Level ${gamification.level}` : "N/A", 
-      icon: Award 
+    {
+      label: "XP Points",
+      value: gamification ? `${gamification.xpPoints.toLocaleString()} XP` : "N/A",
+      sub: gamification ? `Level ${gamification.level}` : "N/A",
+      icon: Award
     },
-    { 
-      label: "Daily Streak", 
-      value: gamification ? `${gamification.currentStreakDays} Days` : "N/A", 
-      sub: gamification?.longestStreakDays ? `Best: ${gamification.longestStreakDays} days` : "N/A", 
-      icon: Flame 
+    {
+      label: "Daily Streak",
+      value: gamification ? `${gamification.currentStreakDays} Days` : "N/A",
+      sub: gamification?.longestStreakDays ? `Best: ${gamification.longestStreakDays} days` : "N/A",
+      icon: Flame
     },
   ]
 
@@ -71,7 +86,7 @@ export default function HomePage() {
         {quickStats.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <div 
+            <div
               key={idx}
               className="rounded-md border border-border bg-card p-5 shadow-card-light dark:shadow-card-dark flex items-center justify-between hover:shadow-md transition-shadow duration-200"
             >
@@ -95,11 +110,15 @@ export default function HomePage() {
           <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark">
             <div className="flex items-center justify-between pb-4 border-b border-border">
               <h3 className="text-[15px] leading-[24px] font-[510] text-foreground">My Study Spaces</h3>
-              <Link to="/discover" className="text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors">
-                Explore all →
+              {/* FIX #2: Replaced "Explore all →" with "Create Space" button */}
+              <Link
+                to="/spaces/create"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-1.5 text-[12px] font-[510] hover:opacity-90 active:scale-98 transition-all shadow-btn-primary"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Create Space</span>
               </Link>
             </div>
-
             <div className="pt-4">
               {spacesLoading ? (
                 <LoadingState message="Loading your spaces…" />
@@ -107,7 +126,7 @@ export default function HomePage() {
                 <EmptyState
                   icon={<FolderOpen className="h-6 w-6 text-muted-foreground" />}
                   title="No spaces joined yet"
-                  description="Explore available spaces and join your course groups."
+                  description="Create or explore spaces to get started with your courses."
                 />
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -122,7 +141,7 @@ export default function HomePage() {
 
         {/* Right Side: Quick Action Links */}
         <div className="lg:col-span-4 space-y-6">
-          <div 
+          <div
             className="rounded-md text-white p-6 shadow-card-dark relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #0E1A3E 0%, #293677 50%, #544BBA 100%)" }}
           >
@@ -131,8 +150,8 @@ export default function HomePage() {
             <p className="text-[12px] text-white/70 mb-6 font-normal leading-relaxed relative z-10">
               Collaborate on courses, find solutions from peers, and download lecture notes uploaded by instructors.
             </p>
-            <Link 
-              to="/discover" 
+            <Link
+              to="/discover"
               className="inline-flex items-center space-x-2 rounded-full bg-white text-[#0E1A3E] px-4 py-2 text-[12px] font-[510] hover:bg-white/90 active:scale-98 transition-all relative z-10"
             >
               <span>Explore Spaces</span>

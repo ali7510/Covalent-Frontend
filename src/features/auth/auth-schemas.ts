@@ -20,7 +20,8 @@ export const registerSchema = z.object({
   confirmPassword: z.string(),
   studentId: z.string().regex(/^\d{8}$/, "Student ID must be exactly 8 digits").optional().or(z.literal("")),
   academicYear: z.coerce.number().min(1).max(4).optional().or(z.literal(0)).or(z.literal("")),
-  currentSemester: z.coerce.number().min(1).max(8).optional().or(z.literal(0)).or(z.literal("")),
+  // FIX #5: Changed max from 8 to 2
+  currentSemester: z.coerce.number().min(1).max(2).optional().or(z.literal(0)).or(z.literal("")),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"]

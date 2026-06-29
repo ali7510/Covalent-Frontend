@@ -1,3 +1,5 @@
+// src/features/users/pages/ProfilePage.tsx
+
 import { useState, useMemo } from "react"
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -24,12 +26,12 @@ import type { CourseRegistrationResponse } from "@/lib/types"
 // ---------------------------------------------------------------------------
 // Zod Schemas
 // ---------------------------------------------------------------------------
-
 const updateProfileSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   department: z.string().optional(),
-  academicYear: z.union([z.coerce.number().int().min(1).max(8), z.literal("")]).optional(),
-  currentSemester: z.union([z.coerce.number().int().min(1).max(12), z.literal("")]).optional(),
+  // FIX #5: Changed academicYear max from 8 to 4, and currentSemester max from 12 to 2
+  academicYear: z.union([z.coerce.number().int().min(1).max(4), z.literal("")]).optional(),
+  currentSemester: z.union([z.coerce.number().int().min(1).max(2), z.literal("")]).optional(),
   bio: z.string().max(500, "Bio must be at most 500 characters").optional(),
 })
 
@@ -84,6 +86,7 @@ type UpdateProfileRawValues = {
   currentSemester?: number | ""
   bio?: string
 }
+
 type ChangePasswordValues = z.infer<typeof changePasswordSchema>
 type RegisterCourseValues = z.infer<typeof registerCourseSchema>
 type EditCourseValues = z.infer<typeof editCourseSchema>
@@ -91,7 +94,6 @@ type EditCourseValues = z.infer<typeof editCourseSchema>
 // ---------------------------------------------------------------------------
 // XP Level Helpers (Level = floor(1 + sqrt(xp / 100)))
 // ---------------------------------------------------------------------------
-
 function computeXpProgress(xp: number) {
   const level = Math.floor(1 + Math.sqrt(xp / 100))
   const xpAtLevel = Math.pow(level - 1, 2) * 100
@@ -105,7 +107,6 @@ function computeXpProgress(xp: number) {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-
 export default function ProfilePage() {
   const { user, logout } = useAuth()
   const { data: courses, isLoading: coursesLoading } = useAllCourses()
@@ -146,7 +147,6 @@ export default function ProfilePage() {
   // ---------------------------------------------------------------------------
   // Forms
   // ---------------------------------------------------------------------------
-
   const profileForm = useForm<UpdateProfileRawValues>({
     resolver: zodResolver(updateProfileSchema) as Resolver<UpdateProfileRawValues>,
     defaultValues: {
@@ -176,7 +176,6 @@ export default function ProfilePage() {
   // ---------------------------------------------------------------------------
   // Catalog lookup map
   // ---------------------------------------------------------------------------
-
   const catalogMap = useMemo(() => {
     if (!catalogData?.courses) return {}
     return catalogData.courses.reduce((acc, c) => {
@@ -188,7 +187,6 @@ export default function ProfilePage() {
   // ---------------------------------------------------------------------------
   // Submit Handlers
   // ---------------------------------------------------------------------------
-
   const handleUpdateProfileSubmit = (values: UpdateProfileRawValues) => {
     updateProfileMutation.mutate(
       {
@@ -234,7 +232,6 @@ export default function ProfilePage() {
       ? Number(values.termWork) : undefined
     const examVal = values.hasGrades && values.examWork !== "" && values.examWork !== undefined
       ? Number(values.examWork) : undefined
-
     registerCourseMutation.mutate(
       { code: values.courseCode, termWork: termVal, examWork: examVal },
       {
@@ -277,7 +274,6 @@ export default function ProfilePage() {
       ? Number(values.termWork) : undefined
     const examVal = hasVals && values.examWork !== "" && values.examWork !== undefined
       ? Number(values.examWork) : undefined
-
     updateCourseMutation.mutate(
       {
         id: editingCourse.id.toString(),
@@ -328,21 +324,17 @@ export default function ProfilePage() {
   // ---------------------------------------------------------------------------
   // Derived data
   // ---------------------------------------------------------------------------
-
   const activeCourses = courses?.filter((c) => !c.closed) ?? []
   const pastCourses = courses?.filter((c) => c.closed) ?? []
   const xpInfo = gamification ? computeXpProgress(gamification.xpPoints) : null
-
   const watchHasGradesRegister = courseForm.watch("hasGrades")
   const watchHasGradesEdit = editForm.watch("hasGrades")
   const watchClosed = editForm.watch("closed")
-
   const isLoading = coursesLoading || catalogLoading
 
   // ---------------------------------------------------------------------------
   // JSX
   // ---------------------------------------------------------------------------
-
   return (
     <div className="space-y-8 animate-fade-in duration-300">
       {/* Page Header */}
@@ -360,7 +352,6 @@ export default function ProfilePage() {
         <div className="lg:col-span-4 space-y-6">
           <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark flex flex-col items-center text-center space-y-4">
             <UserAvatar className="h-20 w-20 ring-2 ring-border" fallbackClassName="text-xl" />
-
             <div className="space-y-1.5">
               <h3 className="text-[15px] font-[510] text-foreground">{user?.fullName || "N/A"}</h3>
               {gamification && (
@@ -503,7 +494,6 @@ export default function ProfilePage() {
                     <span>Register Module</span>
                   </button>
                 </div>
-
                 {isLoading ? (
                   <LoadingState message="Loading modules..." />
                 ) : activeCourses.length === 0 ? (
@@ -588,14 +578,12 @@ export default function ProfilePage() {
           {/* SETTINGS TAB */}
           {activeSubTab === "settings" && (
             <div className="space-y-6 animate-fade-in text-[12px]">
-
               {/* Profile details config form */}
               <div className="rounded-md border border-border bg-card p-6 shadow-card-light dark:shadow-card-dark space-y-4">
                 <h3 className="text-[12px] font-[510] uppercase tracking-wider text-foreground flex items-center space-x-2">
                   <User className="h-4 w-4" />
                   <span>Academic Details</span>
                 </h3>
-
                 <form onSubmit={profileForm.handleSubmit(handleUpdateProfileSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Full Name *</label>
@@ -610,12 +598,17 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Department</label>
-                    <input
-                      type="text"
+                    <select
                       {...profileForm.register("department")}
-                      placeholder="e.g. Computer Science"
                       className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
-                    />
+                    >
+                      <option value="">— Select department —</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Artificial Intelligence">Artificial Intelligence</option>
+                      <option value="Information Technology">Information Technology</option>
+                      <option value="Information Systems">Information Systems</option>
+                      <option value="Operation Research & Decision Support">Operation Research & Decision Support</option>
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Cumulative GPA</label>
@@ -635,7 +628,8 @@ export default function ProfilePage() {
                         type="number"
                         {...profileForm.register("academicYear")}
                         min={1}
-                        max={8}
+                        // FIX #5: Changed max from 8 to 4
+                        max={4}
                         className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
                       />
                     </div>
@@ -645,12 +639,12 @@ export default function ProfilePage() {
                         type="number"
                         {...profileForm.register("currentSemester")}
                         min={1}
-                        max={12}
+                        // FIX #5: Changed max from 12 to 2
+                        max={2}
                         className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-background text-foreground"
                       />
                     </div>
                   </div>
-
                   <div className="col-span-full space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Bio / Academic Target</label>
                     <textarea
@@ -663,7 +657,6 @@ export default function ProfilePage() {
                       <p className="text-[10px] text-red-500">{profileForm.formState.errors.bio.message}</p>
                     )}
                   </div>
-
                   <div className="col-span-full flex justify-end">
                     <button
                       type="submit"
@@ -682,7 +675,6 @@ export default function ProfilePage() {
                   <Bell className="h-4 w-4" />
                   <span>Notification Subscriptions</span>
                 </h3>
-
                 <div className="space-y-3.5 border-t border-border pt-3.5">
                   <div className="flex items-center justify-between">
                     <div>
@@ -700,7 +692,6 @@ export default function ProfilePage() {
                       />
                     </button>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-[510] text-foreground">In-App Alerts</p>
@@ -729,7 +720,6 @@ export default function ProfilePage() {
                 <p className="text-[10px] text-muted-foreground font-normal leading-relaxed border-t border-border pt-3.5">
                   Changing your password will immediately terminate all active sessions on all devices. You will be redirected to the login page.
                 </p>
-
                 <form onSubmit={passwordForm.handleSubmit(handleChangePasswordSubmit)} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Current Password</label>
@@ -777,6 +767,7 @@ export default function ProfilePage() {
                         <p className="text-[10px] text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
                       )}
                     </div>
+
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Confirm New Password</label>
                       <div className="relative">
@@ -812,7 +803,6 @@ export default function ProfilePage() {
                   </div>
                 </form>
               </div>
-
             </div>
           )}
         </div>
@@ -831,7 +821,6 @@ export default function ProfilePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-
             <form onSubmit={courseForm.handleSubmit(handleAddCourseSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Select Course *</label>
@@ -904,7 +893,6 @@ export default function ProfilePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-
             <form onSubmit={editForm.handleSubmit(handleEditCourseSubmit)} className="space-y-4 text-[12px]">
               <div className="space-y-1">
                 <p className="font-medium text-foreground text-[13px]">{catalogMap[editingCourse.code] || editingCourse.code}</p>

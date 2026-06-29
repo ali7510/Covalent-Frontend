@@ -3,7 +3,6 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 // ---------------------------------------------------------------------------
 // Axios instance
 // ---------------------------------------------------------------------------
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8080",
   headers: { "Content-Type": "application/json" },
@@ -12,7 +11,6 @@ const api = axios.create({
 // ---------------------------------------------------------------------------
 // Request interceptor — attach access token
 // ---------------------------------------------------------------------------
-
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -22,7 +20,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // ---------------------------------------------------------------------------
 // Response interceptor — silent token refresh on 401
 // ---------------------------------------------------------------------------
-
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value: unknown) => void;
@@ -44,15 +41,26 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // Skip token refresh if: non-401, already retried, or is an auth endpoint (login/register)
+    const status = error.response?.status;
+    const url = original.url || "";
+
+    // Define public endpoints that should NEVER trigger token refresh
+    const isPublicEndpoint = 
+      url.includes("/api/v1/auth/login") ||
+      url.includes("/api/v1/auth/register") ||
+      url.includes("/api/v1/auth/forgot-password") ||
+      url.includes("/api/v1/auth/reset-password");
+
+    // Only handle 401 errors, skip if already retried, or if it's a public endpoint
     if (
-      error.response?.status !== 401 ||
+      status !== 401 ||
       original._retry ||
-      original.url?.includes("/api/v1/auth/")
+      isPublicEndpoint
     ) {
       return Promise.reject(error);
     }
 
+    // If a refresh is already in progress, queue this request
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
@@ -69,6 +77,11 @@ api.interceptors.response.use(
 
     try {
       const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        throw new Error("No refresh token available");
+      }
+
+      // Use plain axios — NOT the `api` instance — to avoid recursive interception
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL ?? "http://localhost:8080"}/api/v1/auth/refresh`,
         { refreshToken }
@@ -77,7 +90,6 @@ api.interceptors.response.use(
       const { token: newAccess, refreshToken: newRefresh } = data.data;
       localStorage.setItem("accessToken", newAccess);
       localStorage.setItem("refreshToken", newRefresh);
-
       api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
       original.headers.Authorization = `Bearer ${newAccess}`;
 

@@ -1,5 +1,7 @@
+// src/features/spaces/pages/SpaceSearchPage.tsx
+
 import { useState, useEffect } from "react"
-import { Search, Compass, Sparkles } from "lucide-react"
+import { Search, Compass, Sparkles, Plus } from "lucide-react"
 import { useActiveSpaces, useSearchSpaces, useJoinSpace, useUserSpaces } from "@/hooks/useSpaces"
 import { useSpaceRecommendations } from "@/hooks/useRecommendations"
 import SpaceCard from "@/components/shared/SpaceCard"
@@ -7,6 +9,7 @@ import LoadingState from "@/components/shared/LoadingState"
 import EmptyState from "@/components/shared/EmptyState"
 import { toast } from "sonner"
 import { isAxiosError } from "axios"
+import { Link } from "react-router-dom"
 
 export default function SpaceSearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -32,7 +35,6 @@ export default function SpaceSearchPage() {
 
   // Use search when there's a query or category filter, otherwise get active spaces
   const hasFilter = debouncedQuery.trim() !== "" || activeCategory !== "ALL"
-  
   const { data: activeSpaces, isLoading: activeLoading } = useActiveSpaces(0, 20, !hasFilter)
   const { data: searchResult, isLoading: searchLoading } = useSearchSpaces({
     query: debouncedQuery.trim() || undefined,
@@ -64,23 +66,33 @@ export default function SpaceSearchPage() {
   return (
     <div className="space-y-8 animate-fade-in duration-300">
       {/* Page Header */}
-      <div className="space-y-2">
-        <h1 className="text-[28px] leading-[1.2] tracking-[-0.5px] font-normal text-foreground">
-          Discover Study <span className="font-[510]">Spaces</span>
-        </h1>
-        <p className="text-muted-foreground font-normal max-w-2xl text-[14px] leading-relaxed">
-          Search courses and student clubs, join spaces to collaborate on worksheets, and find verified resources shared by lecturers.
-        </p>
+      {/* FIX: Restructured header to include Create Space button on the right */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="space-y-2 max-w-2xl">
+          <h1 className="text-[28px] leading-[1.2] tracking-[-0.5px] font-normal text-foreground">
+            Discover Study <span className="font-[510]">Spaces</span>
+          </h1>
+          <p className="text-muted-foreground font-normal text-[14px] leading-relaxed">
+            Search courses and student clubs, join spaces to collaborate on worksheets, and find verified resources shared by lecturers.
+          </p>
+        </div>
+        <Link
+          to="/spaces/create"
+          className="self-start sm:self-center inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-2 text-[13px] font-[510] hover:opacity-90 active:scale-98 transition-all shadow-btn-primary shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Create Space</span>
+        </Link>
       </div>
 
       {/* Search Input Bar */}
       <div className="relative w-full max-w-2xl">
         <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by course name, abbreviation, or code (e.g. CS-301)..." 
+          placeholder="Search by course name, abbreviation, or code (e.g. CS-301)..."
           className="w-full rounded-md border border-border pl-11 pr-4 py-3 text-[13px] bg-card text-foreground shadow-card-light dark:shadow-card-dark focus:outline-none"
         />
       </div>
@@ -103,7 +115,6 @@ export default function SpaceSearchPage() {
             </button>
           ))}
         </div>
-
         {/* Order By selector */}
         <div className="flex items-center space-x-2 shrink-0">
           <span className="text-[11px] font-[510] text-muted-foreground uppercase tracking-wide">Order by</span>
@@ -153,7 +164,6 @@ export default function SpaceSearchPage() {
                         {Math.round(score * 100)}% match
                       </span>
                     </div>
-
                     {reasons.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {reasons.slice(0, 3).map((r, i) => (
@@ -166,7 +176,6 @@ export default function SpaceSearchPage() {
                         ))}
                       </div>
                     )}
-
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[10px] text-muted-foreground">{space.memberCount} members</span>
                       <button
@@ -197,7 +206,6 @@ export default function SpaceSearchPage() {
             {activeCategory === "ALL" ? "All Active Spaces" : (activeCategory as string).replace("_", " ")}
           </h2>
         )}
-
         {isLoading ? (
           <LoadingState message="Loading spaces…" />
         ) : spaces.length === 0 ? (
