@@ -37,6 +37,7 @@ export function useRegisterCourse() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentCourses"] })
       queryClient.invalidateQueries({ queryKey: ["allCourses"] })
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
     },
   })
 }
@@ -48,6 +49,7 @@ export function useUpdateCourseRegistration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentCourses"] })
       queryClient.invalidateQueries({ queryKey: ["allCourses"] })
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
     },
   })
 }
@@ -59,6 +61,7 @@ export function useDeleteCourseRegistration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["currentCourses"] })
       queryClient.invalidateQueries({ queryKey: ["allCourses"] })
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
     },
   })
 }

@@ -20,7 +20,6 @@ import {
   Moon,
   Sparkles,
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
 
 interface SidebarProps {
   isOpen?: boolean

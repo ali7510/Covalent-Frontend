@@ -125,6 +125,14 @@ export async function updateMaterial(
 }
 
 // ---------------------------------------------------------------------------
+// Get a single material by ID
+// ---------------------------------------------------------------------------
+export async function getMaterialById(materialId: string): Promise<MaterialResponse> {
+  const res = await api.get(`${BASE}/${materialId}`);
+  return res.data.data;
+}
+
+// ---------------------------------------------------------------------------
 // Delete a material (uploader only)
 // ---------------------------------------------------------------------------
 export async function deleteMaterial(materialId: string): Promise<void> {

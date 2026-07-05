@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNotifications, useUnreadCount } from "@/hooks/useNotifications"
 import { markNotificationRead, buildNotificationLink } from "@/services/notifications"
+import { getMaterialById } from "@/services/materials"
 import LoadingState from "@/components/shared/LoadingState"
 import EmptyState from "@/components/shared/EmptyState"
 import type { NotificationResponse } from "@/lib/types"
@@ -50,6 +51,21 @@ export default function NotificationsPage() {
         // silent fail
       }
     }
+
+    // NEW_MATERIAL notifications: the referenceId is the material's UUID.
+    // Materials don't have their own route — they live inside a space.
+    // So we fetch the material to get its spaceId and navigate there.
+    if (notif.referenceType === "NEW_MATERIAL" && notif.referenceId) {
+      try {
+        const material = await getMaterialById(notif.referenceId)
+        navigate(`/spaces/${material.spaceId}`)
+      } catch {
+        // If the material fetch fails (deleted, no access), fall back to notifications page
+        navigate("/notifications")
+      }
+      return
+    }
+
     const link = buildNotificationLink(notif.referenceType, notif.referenceId)
     // Fix: check that the link is not a dead link or points back to notifications itself
     if (link && link !== "#" && link !== "/notifications") {

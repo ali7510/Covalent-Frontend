@@ -4,7 +4,6 @@ import type {
   MembershipResponse,
   CreateSpaceBody,
   SearchSpacesParams,
-  PagedResponse,
   UpdateSpaceBody,
 } from "../lib/types";
 

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import { toast } from "sonner"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { 
@@ -14,8 +14,7 @@ import {
   TrendingUp,
   Search,
   Sparkles,
-  Globe,
-  Clock
+  Globe
 } from "lucide-react"
 
 import {
@@ -175,12 +174,12 @@ export default function OnlineCoursesPage() {
 
   // Forms
   const courseForm = useForm<RegisterCourseValues>({
-    resolver: zodResolver(registerCourseSchema),
+    resolver: zodResolver(registerCourseSchema) as Resolver<RegisterCourseValues>,
     defaultValues: { courseCode: "", hasGrades: false, termWork: "", examWork: "" },
   })
 
   const gradeForm = useForm<EditGradeValues>({
-    resolver: zodResolver(editGradeSchema),
+    resolver: zodResolver(editGradeSchema) as Resolver<EditGradeValues>,
     defaultValues: { hasGrades: false, termWork: "", examWork: "", closed: false },
   })
 

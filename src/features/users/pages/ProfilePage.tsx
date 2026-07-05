@@ -104,6 +104,13 @@ function computeXpProgress(xp: number) {
   return { level, xpAtLevel, xpForNext, progress }
 }
 
+function computeGpa(courses: CourseRegistrationResponse[]): string {
+  const graded = courses.filter((c) => c.grade && c.points !== null)
+  if (graded.length === 0) return "N/A"
+  const avg = graded.reduce((sum, c) => sum + (c.points ?? 0), 0) / graded.length
+  return avg.toFixed(2)
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -164,12 +171,12 @@ export default function ProfilePage() {
   })
 
   const courseForm = useForm<RegisterCourseValues>({
-    resolver: zodResolver(registerCourseSchema),
+    resolver: zodResolver(registerCourseSchema) as Resolver<RegisterCourseValues>,
     defaultValues: { courseCode: "", hasGrades: false, termWork: "", examWork: "" },
   })
 
   const editForm = useForm<EditCourseValues>({
-    resolver: zodResolver(editCourseSchema),
+    resolver: zodResolver(editCourseSchema) as Resolver<EditCourseValues>,
     defaultValues: { hasGrades: false, termWork: "", examWork: "", closed: false },
   })
 
@@ -327,6 +334,7 @@ export default function ProfilePage() {
   const activeCourses = courses?.filter((c) => !c.closed) ?? []
   const pastCourses = courses?.filter((c) => c.closed) ?? []
   const xpInfo = gamification ? computeXpProgress(gamification.xpPoints) : null
+  const gpa = courses ? computeGpa(courses) : (user?.gpa != null ? user.gpa.toFixed(2) : "N/A")
   const watchHasGradesRegister = courseForm.watch("hasGrades")
   const watchHasGradesEdit = editForm.watch("hasGrades")
   const watchClosed = editForm.watch("closed")
@@ -469,7 +477,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-md border border-border bg-card p-5 shadow-card-light dark:shadow-card-dark">
                   <span className="text-[10px] text-muted-foreground font-[510] tracking-wide uppercase">Cumulative GPA</span>
-                  <p className="text-[22px] font-[510] tracking-tight text-foreground mt-1">{user?.gpa != null ? user.gpa.toFixed(2) : "N/A"}</p>
+                  <p className="text-[22px] font-[510] tracking-tight text-foreground mt-1">{gpa}</p>
                   <span className="text-[10px] text-muted-foreground block mt-0.5">{user?.department || "N/A"}</span>
                 </div>
                 <div className="rounded-md border border-border bg-card p-5 shadow-card-light dark:shadow-card-dark">
@@ -614,7 +622,7 @@ export default function ProfilePage() {
                     <label className="text-[10px] font-[510] uppercase tracking-wider text-muted-foreground">Cumulative GPA</label>
                     <input
                       type="text"
-                      value={user?.gpa != null ? user.gpa.toFixed(2) : "N/A"}
+                      value={gpa}
                       readOnly
                       disabled
                       className="w-full rounded-md border border-border p-2.5 focus:outline-none bg-secondary text-muted-foreground cursor-not-allowed opacity-75"

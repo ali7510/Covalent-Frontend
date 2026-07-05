@@ -14,7 +14,6 @@ import {
 import type {
   SearchSpacesParams,
   SpaceResponse,
-  PagedResponse,
   MembershipResponse,
   CreateSpaceBody,
   UpdateSpaceBody,

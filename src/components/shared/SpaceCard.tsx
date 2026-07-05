@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
-import { Users, FolderKanban, ChevronRight } from "lucide-react"
+import { Users, ChevronRight } from "lucide-react"
 import type { SpaceResponse } from "@/lib/types"
 import { useUserSpaces, useJoinSpace, useLeaveSpace } from "@/hooks/useSpaces"
 import { toast } from "sonner"
